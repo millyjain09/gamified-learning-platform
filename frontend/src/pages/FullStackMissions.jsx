@@ -1,99 +1,299 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const FullStackMissions = () => {
+/* ─── EXACT DSA TERMINAL STYLE ───────────────────────────────
+   Dark #0d1117 bg, grid overlay, image top half, title+desc+LVL bottom,
+   colored left-border on desc, per-game accent color.
+   Same font (monospace/bold italic), same card structure.
+──────────────────────────────────────────────────────────── */
+
+const GAMES = [
+  {
+    id: 'code-runner',
+    title: 'Code Runner',
+    desc: 'Race against AlgoBot by solving fullstack tasks. First to reach 100% on the track wins.',
+    lvl: '01',
+    accent: '#ff3b6b',          // red-pink like 1vs1 Battle
+    path: '/games/code-runner',
+    img: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=700&q=80', // keyboard/code
+  },
+  {
+    id: 'dev-survivor',
+    title: 'Dev Survivor',
+    desc: 'A 20-level wasteland RPG. Solve real code tasks to survive 4 brutal zones and reach The Core.',
+    lvl: '02',
+    accent: '#00e5ff',          // cyan like Debug Code
+    path: '/games/dev-survivor',
+    img: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=700&q=80', // dark code screen
+  },
+  {
+    id: 'git-quest',
+    title: 'Git Quest',
+    desc: 'Fill-in-the-blank Git commands. Wrong answers cost time. Build your repo step by step.',
+    lvl: '03',
+    accent: '#00e676',          // green like AlgoVillage
+    path: '/games/git-quest',
+    img: 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=700&q=80', // terminal/git
+  },
+  {
+    id: 'code-arena',
+    title: 'Code Arena',
+    desc: '1v1 PvE coding battle. Submit correct answers to drain the enemy HP before time runs out.',
+    lvl: '04',
+    accent: '#ff6d00',          // orange
+    path: '/games/code-arena',
+    img: 'https://images.unsplash.com/photo-1551033406-611cf9a28f67?w=700&q=80', // computer screens battle
+  },
+  {
+  id: 'code-race',
+  title: 'Code Race',
+  desc: 'Real-time multiplayer coding race. Complete fullstack tasks faster than your opponent.',
+  lvl: '05',
+  accent: '#d500f9',
+  path: '/games/code-race',
+  img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=700&q=80'
+}
+];
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;1,900&family=Share+Tech+Mono&display=swap');
+
+  .fst-root {
+    min-height: 100vh;
+    background: #0d1117;
+    font-family: 'Share Tech Mono', monospace;
+    color: #c9d1d9;
+    position: relative;
+  }
+
+  /* Same grid as DSA Terminal */
+  .fst-grid-bg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(30,215,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,215,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Title — same bold italic condensed style */
+  .fst-title-white {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    color: #ffffff;
+    font-size: clamp(32px, 5vw, 54px);
+    letter-spacing: .02em;
+    line-height: 1;
+  }
+  .fst-title-accent {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(32px, 5vw, 54px);
+    letter-spacing: .02em;
+    line-height: 1;
+    /* gradient like DSA (white→cyan→pink) */
+    background: linear-gradient(90deg, #00e5ff 0%, #ff3b6b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .fst-subtitle {
+    font-size: 11px;
+    color: #8b949e;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    margin-top: 6px;
+    border-left: 2px solid #30363d;
+    padding-left: 10px;
+  }
+
+  /* Back button */
+  .fst-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #8b949e;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    padding: 7px 14px;
+    cursor: pointer;
+    margin-bottom: 32px;
+    transition: color .15s, border-color .15s;
+    text-transform: uppercase;
+  }
+  .fst-back:hover { color: #00e5ff; border-color: #00e5ff40; }
+
+  /* Card */
+  .fst-card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .25s cubic-bezier(.34,1.2,.64,1), border-color .2s, box-shadow .2s;
+    position: relative;
+  }
+  .fst-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 32px var(--accent-dim);
+  }
+  .fst-card:hover .fst-card-img {
+    transform: scale(1.04);
+  }
+
+  .fst-card-img-wrap {
+    width: 100%; height: 200px; overflow: hidden; position: relative;
+  }
+  .fst-card-img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block;
+    transition: transform .4s ease;
+    filter: brightness(.75) saturate(.9);
+  }
+  /* Small icon overlay bottom-left on image — like the colored icons in reference */
+  .fst-card-icon {
+    position: absolute;
+    bottom: 10px; left: 12px;
+    font-size: 28px;
+    opacity: .85;
+    filter: drop-shadow(0 0 8px var(--accent));
+  }
+  /* LVL badge overlay bottom-right on image */
+  .fst-card-lvl-img {
+    position: absolute;
+    bottom: 10px; right: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: .15em;
+    background: #0d1117cc;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  /* Card body */
+  .fst-card-body {
+    padding: 16px 16px 20px;
+  }
+  .fst-card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 22px;
+    color: #ffffff;
+    letter-spacing: .04em;
+    margin-bottom: 10px;
+    line-height: 1;
+  }
+  /* Desc with colored left border — exactly like DSA Terminal */
+  .fst-card-desc {
+    font-size: 12px;
+    color: #8b949e;
+    line-height: 1.6;
+    border-left: 2px solid var(--accent);
+    padding-left: 10px;
+    margin-bottom: 14px;
+  }
+  /* LVL badge below — same style as reference */
+  .fst-card-lvl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: .15em;
+  }
+
+  /* Grid layout */
+  .fst-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .fst-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 580px) {
+    .fst-grid { grid-template-columns: 1fr; }
+  }
+`;
+
+/* ── card icons — matching the colored icon overlays in DSA Terminal ── */
+const ICONS = {
+  'code-runner':      '🏃',
+  'dev-survivor':     '🔥',
+  'git-quest':        '⚡',
+  'code-arena':       '⚔️',
+  'code-race':        '⚡',
+
+};
+
+export default function FullStackMissions() {
   const navigate = useNavigate();
 
-  // Array of 5 Epic Full Stack Missions
-  const missions = [
-    { 
-      id: "debug-dungeon", 
-      title: "The Debug Dungeon", 
-      type: "Code Debugging", 
-      desc: "Find the hidden syntax errors and logical bugs in the MERN code before the system crashes.", 
-      xp: 50, 
-      color: "border-red-500 hover:shadow-red-500/50 text-red-400",
-      path: "/games/debug-dungeon"
-    },
-    { 
-      id: "guardians-gate", 
-      title: "Guardian's Gate", 
-      type: "JWT Security", 
-      desc: "Forge the correct JWT tokens to bypass the middleware guards and secure the API routes.", 
-      xp: 100, 
-      color: "border-purple-500 hover:shadow-purple-500/50 text-purple-400",
-      path: "/games/guardians-gate"
-    },
-    { 
-      id: "network-maze", 
-      title: "Network Maze", 
-      type: "API Routing", 
-      desc: "Route the lost JSON data packets correctly from the Express backend to the React frontend.", 
-      xp: 80, 
-      color: "border-blue-500 hover:shadow-blue-500/50 text-blue-400",
-      path: "/games/network-maze"
-    },
-    { 
-      id: "deployment-dock", 
-      title: "Deployment Dock", 
-      type: "DevOps", 
-      desc: "Configure the build pipeline, set env variables, and push the application to the live cloud.", 
-      xp: 150, 
-      color: "border-green-500 hover:shadow-green-500/50 text-green-400",
-      path: "/games/deployment-dock"
-    },
-    { 
-      id: "broken-kingdom", 
-      title: "Broken Kingdom", 
-      type: "Form Validation", 
-      desc: "User inputs are causing chaos! Restore order by fixing the broken React form validations.", 
-      xp: 70, 
-      color: "border-yellow-500 hover:shadow-yellow-500/50 text-yellow-400",
-      path: "/games/broken-kingdom"
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-[#0d1117] p-8 md:p-12 font-sans text-gray-200">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 mb-4 tracking-wider uppercase drop-shadow-lg">
-            Full Stack Arena
-          </h1>
-          <p className="text-lg text-gray-400">Select your mission. Fix the code. Earn XP.</p>
+    <div className="fst-root">
+      <style>{CSS}</style>
+      <div className="fst-grid-bg" />
+
+      <div style={{ maxWidth: 1160, margin: '0 auto', padding: '28px 24px 56px', position: 'relative', zIndex: 1 }}>
+
+        {/* ── back button — same as DSA Terminal ── */}
+        <button className="fst-back" onClick={() => navigate('/missions')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          BACK TO BASE
+        </button>
+
+        {/* ── header — same layout as DSA Terminal ── */}
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <span className="fst-title-white">FULLSTACK</span>
+            <span className="fst-title-accent">TERMINAL</span>
+          </div>
+          <p className="fst-subtitle">SELECT SUB-SYSTEM TO INITIALIZE MISSION</p>
         </div>
 
-        {/* Mission Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {missions.map((mission) => (
-            <div 
-              key={mission.id} 
-              className={`relative bg-[#161b22] p-6 rounded-2xl border-2 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl flex flex-col justify-between ${mission.color}`}
+        {/* ── cards grid ── */}
+        <div className="fst-grid">
+          {GAMES.map(game => (
+            <div
+              key={game.id}
+              className="fst-card"
+              style={{
+                '--accent': game.accent,
+                '--accent-dim': game.accent + '28',
+              }}
+              onClick={() => navigate(game.path)}
             >
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-xs font-bold uppercase tracking-widest bg-black/50 px-3 py-1 rounded-full text-gray-300">
-                    {mission.type}
-                  </span>
-                  <span className="font-bold text-white bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20">
-                    +{mission.xp} XP
-                  </span>
-                </div>
-                
-                <h3 className="text-2xl font-black mb-3 text-white">{mission.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                  {mission.desc}
-                </p>
+              {/* image top half */}
+              <div className="fst-card-img-wrap">
+                <img
+                  className="fst-card-img"
+                  src={game.img}
+                  alt={game.title}
+                  onError={e => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.style.background = '#0d1117';
+                  }}
+                />
+                {/* colored icon bottom-left on image */}
+                <span className="fst-card-icon">{ICONS[game.id]}</span>
               </div>
-              
-              <button 
-                onClick={() => navigate(mission.path)}
-                className="w-full py-3 mt-4 rounded-xl font-bold text-white bg-gray-800 border border-gray-600 hover:bg-white hover:text-black transition-all duration-300"
-              >
-                START MISSION 🚀
-              </button>
+
+              {/* card body — dark section below image */}
+              <div className="fst-card-body">
+                <h3 className="fst-card-title">{game.title}</h3>
+
+                {/* desc with colored left border */}
+                <p className="fst-card-desc">{game.desc}</p>
+
+                {/* LVL badge — exactly like reference */}
+                <span className="fst-card-lvl">LVL_{game.lvl}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -101,6 +301,4 @@ const FullStackMissions = () => {
       </div>
     </div>
   );
-};
-
-export default FullStackMissions;
+}

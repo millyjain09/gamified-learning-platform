@@ -18,6 +18,13 @@ import BattleScreen from './pages/games/BattleScreen.jsx';
 import DebugFullstack from './pages/games/debugFullstack.jsx';
 import AlgoVerse from './pages/games/AlgoVerse.jsx';
 import GuardiansGate from './pages/games/GuardiansGate.jsx';
+
+import CodeArena from './pages/games/CodeArena.jsx';
+import GitQuest from './pages/games/GitQuest.jsx';
+import CodeRunner from './pages/games/CodeRunner.jsx';
+import CodeRace from './pages/games/CodeRace.jsx';
+import DevSurvivor from './pages/games/DevSurvivor.jsx';
+
 function App() {
   return (
     <Router>
@@ -43,6 +50,11 @@ function App() {
 
 {/*full stack game routed*/}
         <Route path="/games/debug-dungeon" element={<DebugFullstack/>} />
+        <Route path="/games/code-arena" element={<CodeArena />} />
+        <Route path="/games/git-quest" element={<GitQuest />} />
+        <Route path="/games/code-runner" element={<CodeRunner />} />
+        <Route path="/games/code-race" element={<CodeRace />} />
+        <Route path="/games/dev-survivor" element={<DevSurvivor />} />
 
 
         {/* Catch-all: redirect unknown URLs back to login */}
