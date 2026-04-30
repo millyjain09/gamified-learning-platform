@@ -371,7 +371,7 @@ async function runCodeJudge0(code, question, language) {
 
 /* ─── UI COMPONENTS (Confetti, Blast, HP Bar, Timer, etc) ─── */
 function Confetti() {
-  const cols = ["#ff5c5c","#22d98a","#f5a623","#9b7fff","#4fa3e0","#f472b6","#facc15","#34d399"];
+  const cols = ["#00f2ff","#ff007a","#f5a623","#9b7fff","#4fa3e0","#facc15","#34d399"];
   const pieces = Array.from({ length: 80 }, (_, i) => ({
     left: Math.random() * 52, size: 6 + Math.random() * 10, color: cols[i % cols.length],
     delay: Math.random() * 0.7, dur: 1.0 + Math.random() * 1.4, isCircle: Math.random() > 0.5, rotate: Math.random() * 360,
@@ -379,7 +379,7 @@ function Confetti() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
       {pieces.map((p, i) => (
-        <div key={i} style={{ position:"absolute", left:`${p.left}%`, top:"-10%", width:`${p.size}px`, height:`${p.size}px`, background:p.color, borderRadius:p.isCircle?"50%":"2px", transform:`rotate(${p.rotate}deg)`, animation:`cffall ${p.dur}s ease-in ${p.delay}s forwards` }}/>
+        <div key={i} style={{ position:"absolute", left:`${p.left}%`, top:"-10%", width:`${p.size}px`, height:`${p.size}px`, background:p.color, borderRadius:p.isCircle?"50%":"2px", transform:`rotate(${p.rotate}deg)`, animation:`cffall ${p.dur}s ease-in ${p.delay}s forwards`, boxShadow: `0 0 8px ${p.color}` }}/>
       ))}
       <style>{`@keyframes cffall{0%{top:-10%;opacity:1;transform:rotate(0deg) scale(1);}100%{top:108%;opacity:0;transform:rotate(720deg) scale(0.5);}}`}</style>
     </div>
@@ -400,10 +400,10 @@ function BombBlast() {
 function SkipNotif({ opponentName }) {
   return (
     <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
-      <div style={{ animation:"skipani 1.4s ease-out forwards" }} className="bg-gray-900 border-2 border-red-500 rounded-2xl px-8 py-5 text-center shadow-2xl">
+      <div style={{ animation:"skipani 1.4s ease-out forwards" }} className="bg-[#0a101f]/90 backdrop-blur-md border-2 border-[#ff007a] rounded-2xl px-8 py-5 text-center shadow-[0_0_30px_rgba(255,0,122,0.4)]">
         <div className="text-4xl mb-2">🤖💨</div>
-        <div className="text-red-300 font-black text-lg">{opponentName || "AlgoBot"} Solved It First!</div>
-        <div className="text-gray-500 text-sm mt-1">Moving to next question…</div>
+        <div className="text-[#ff007a] font-black text-lg">{opponentName || "AlgoBot"} Solved It First!</div>
+        <div className="text-[#00f2ff] text-sm mt-1">Moving to next module…</div>
       </div>
       <style>{`@keyframes skipani{0%{opacity:0;transform:scale(0.8) translateY(10px);}12%{opacity:1;transform:scale(1.04) translateY(0);}70%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(0.96) translateY(-6px);}}`}</style>
     </div>
@@ -412,14 +412,14 @@ function SkipNotif({ opponentName }) {
 
 function HPBar({ hp, label, isYou }) {
   const pct = Math.max(0, Math.min(100, hp));
-  const col = pct > 60 ? "#22d98a" : pct > 30 ? "#f5a623" : "#ff5c5c";
+  const col = pct > 60 ? "#00f2ff" : pct > 30 ? "#f5a623" : "#ff007a";
   return (
     <div className={`flex flex-col ${isYou ? "items-start" : "items-end"}`}>
-      <span className="text-xs text-gray-400 mb-1 max-w-36 truncate">{label}</span>
+      <span className="text-xs text-gray-400 mb-1 max-w-36 truncate font-mono uppercase tracking-widest">{label}</span>
       <div className="flex items-center gap-2">
         {!isYou && <span className="text-sm font-bold font-mono" style={{color:col}}>{hp}HP</span>}
-        <div className="w-28 h-2 bg-gray-800 rounded-full overflow-hidden border border-white/10">
-          <div className="h-full rounded-full transition-all duration-700" style={{width:`${pct}%`,background:col}}/>
+        <div className="w-28 h-2 bg-gray-900 rounded-full overflow-hidden border border-white/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+          <div className="h-full rounded-full transition-all duration-700" style={{width:`${pct}%`,background:col, boxShadow: `0 0 10px ${col}`}}/>
         </div>
         {isYou && <span className="text-sm font-bold font-mono" style={{color:col}}>{hp}HP</span>}
       </div>
@@ -435,28 +435,28 @@ function LiveTimer({ seconds }) {
   const crit = seconds <= 10;
   return (
     <div className={`flex flex-col items-center ${crit ? "animate-pulse" : ""}`}>
-      <div className={`font-mono font-black text-xl tabular-nums leading-none ${crit?"text-red-400":urgent?"text-amber-400":"text-white"}`}>
+      <div className={`font-mono font-black text-xl tabular-nums leading-none ${crit?"text-[#ff007a]":urgent?"text-[#f5a623]":"text-[#00f2ff]"}`}>
         {String(mins).padStart(2,"0")}:{String(secs).padStart(2,"0")}
       </div>
-      <div className="w-16 h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
-        <div className="h-full rounded-full transition-all duration-1000" style={{ width:`${pct}%`, background: crit?"#ff5c5c":urgent?"#f5a623":"#22d98a" }}/>
+      <div className="w-16 h-1 bg-gray-900 rounded-full overflow-hidden mt-1 border border-white/5">
+        <div className="h-full rounded-full transition-all duration-1000 shadow-[0_0_5px_currentColor]" style={{ width:`${pct}%`, background: crit?"#ff007a":urgent?"#f5a623":"#00f2ff" }}/>
       </div>
     </div>
   );
 }
 
 const STATUS = {
-  idle:       { icon:"💤", label:"Idle",        cls:"text-gray-500  bg-gray-800/60    border-gray-700/40" },
-  thinking:   { icon:"🤔", label:"Thinking…",    cls:"text-blue-400  bg-blue-900/30    border-blue-700/40" },
-  typing:     { icon:"⌨️",  label:"Typing…",      cls:"text-yellow-400 bg-yellow-900/30 border-yellow-700/40" },
+  idle:       { icon:"💤", label:"Idle",        cls:"text-gray-500  bg-[#0f172a]/80    border-gray-700/40" },
+  thinking:   { icon:"🤔", label:"Thinking…",    cls:"text-[#00f2ff]  bg-cyan-900/30    border-[#00f2ff]/40 shadow-[0_0_10px_rgba(0,242,255,0.2)]" },
+  typing:     { icon:"⌨️",  label:"Typing…",      cls:"text-[#f5a623] bg-orange-900/30 border-orange-700/40 shadow-[0_0_10px_rgba(245,166,35,0.2)]" },
   submitting: { icon:"⚡", label:"Submitting!",  cls:"text-purple-400 bg-purple-900/30 border-purple-700/40" },
-  solved:     { icon:"✅", label:"Solved!",       cls:"text-green-400  bg-green-900/30  border-green-700/40" },
-  failed:     { icon:"❌", label:"Wrong ans",    cls:"text-red-400    bg-red-900/30    border-red-700/40" },
+  solved:     { icon:"✅", label:"Solved!",       cls:"text-green-400  bg-green-900/30  border-green-700/40 shadow-[0_0_10px_rgba(74,222,128,0.2)]" },
+  failed:     { icon:"❌", label:"Wrong ans",    cls:"text-[#ff007a]    bg-pink-900/30    border-[#ff007a]/40 shadow-[0_0_10px_rgba(255,0,122,0.2)]" },
 };
 function OpponentStatus({ status }) {
   const s = STATUS[status] || STATUS.idle;
   return (
-    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold transition-all duration-400 ${s.cls}`}>
+    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-400 ${s.cls}`}>
       <span>{s.icon}</span><span>{s.label}</span>
     </div>
   );
@@ -464,42 +464,42 @@ function OpponentStatus({ status }) {
 
 function QuestionPanel({ question, difficulty, qIdx, totalQs, mySolved, aiSolved }) {
   const cfg = {
-    easy:   { col:"#22d98a", bg:"bg-green-900/30",  bdr:"border-green-700/40",  label:"Easy"   },
-    medium: { col:"#f5a623", bg:"bg-amber-900/30",  bdr:"border-amber-700/40",  label:"Medium" },
-    hard:   { col:"#ff5c5c", bg:"bg-red-900/30",    bdr:"border-red-700/40",    label:"Hard"   },
+    easy:   { col:"#00f2ff", bg:"bg-cyan-900/20",  bdr:"border-[#00f2ff]/30",  label:"Level 1"   },
+    medium: { col:"#f5a623", bg:"bg-orange-900/20",  bdr:"border-orange-500/30",  label:"Level 2" },
+    hard:   { col:"#ff007a", bg:"bg-pink-900/20",    bdr:"border-[#ff007a]/30",    label:"Level 3"   },
   }[difficulty];
   return (
-    <div className="h-full overflow-y-auto p-4 text-sm">
+    <div className="h-full overflow-y-auto p-4 text-sm font-sans">
       <div className="flex items-center gap-2 mb-3">
         {Array.from({length:totalQs},(_,i)=>(
-          <div key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all duration-300 ${ mySolved[i]?"bg-green-500 border-green-400 text-white" :aiSolved[i]?"bg-red-800 border-red-600 text-red-200" :i===qIdx?"bg-purple-700 border-purple-400 text-white" :"bg-gray-800 border-gray-700 text-gray-600" }`}>
+          <div key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all duration-300 ${ mySolved[i]?"bg-cyan-500/20 border-[#00f2ff] text-[#00f2ff] shadow-[0_0_8px_rgba(0,242,255,0.5)]" :aiSolved[i]?"bg-pink-900/40 border-[#ff007a] text-[#ff007a] shadow-[0_0_8px_rgba(255,0,122,0.5)]" :i===qIdx?"bg-purple-700/50 border-purple-400 text-white" :"bg-[#0f172a] border-gray-700 text-gray-500" }`}>
             {mySolved[i]?"✓":aiSolved[i]?"✗":i+1}
           </div>
         ))}
-        <span className="text-xs text-gray-600 ml-1">Q{qIdx+1}/{totalQs}</span>
+        <span className="text-xs text-gray-500 ml-1 font-mono">MOD {qIdx+1}/{totalQs}</span>
       </div>
-      <div className="flex items-center gap-2 mb-3">
-        <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.bdr}`} style={{color:cfg.col}}>{cfg.label}</span>
-        <h2 className="text-sm font-bold text-white leading-tight">{question.title}</h2>
+      <div className="flex items-center gap-2 mb-4">
+        <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded border ${cfg.bg} ${cfg.bdr}`} style={{color:cfg.col}}>{cfg.label}</span>
+        <h2 className="text-lg font-black text-white leading-tight uppercase tracking-tight">{question.title} <span className="text-[#00f2ff]">_</span></h2>
       </div>
-      <p className="text-gray-300 text-xs leading-relaxed mb-4 whitespace-pre-wrap">{question.description}</p>
-      <div className="space-y-2 mb-4">
+      <p className="text-gray-300 text-xs leading-relaxed mb-5 whitespace-pre-wrap font-medium">{question.description}</p>
+      <div className="space-y-3 mb-5">
         {question.examples.map((ex,i)=>(
-          <div key={i} className="bg-gray-900 rounded-xl p-3 border border-gray-800">
-            <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-widest">Example {i+1}</div>
+          <div key={i} className="bg-[#0a101f]/80 backdrop-blur-sm rounded-xl p-3 border border-white/10 shadow-lg">
+            <div className="text-[9px] text-[#00f2ff] mb-1 uppercase tracking-widest font-bold opacity-80">Example_{i+1}</div>
             <div className="font-mono text-xs text-gray-300 space-y-0.5">
-              <div><span className="text-gray-500">Input: </span>{ex.input}</div>
-              <div><span className="text-gray-500">Output: </span>{ex.output}</div>
-              {ex.explanation&&<div className="text-gray-600">{ex.explanation}</div>}
+              <div><span className="text-gray-500">&gt; input: </span><span className="text-white">{ex.input}</span></div>
+              <div><span className="text-[#ff007a] opacity-80">&gt; output: </span><span className="font-bold text-white">{ex.output}</span></div>
+              {ex.explanation&&<div className="text-gray-500 mt-1 italic">// {ex.explanation}</div>}
             </div>
           </div>
         ))}
       </div>
-      <div className="bg-gray-900 rounded-xl p-3 border border-gray-800">
-        <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-widest font-bold">Test Cases ({question.testCases.length})</div>
+      <div className="bg-[#0a101f]/80 backdrop-blur-sm rounded-xl p-3 border border-white/10 shadow-lg">
+        <div className="text-[9px] text-gray-500 mb-2 uppercase tracking-widest font-bold">Validation Parameters ({question.testCases.length})</div>
         {question.testCases.map((tc,i)=>(
-          <div key={i} className="font-mono text-[11px] text-gray-400 py-1 border-b border-gray-800 last:border-0">
-            <span className="text-gray-600">#{i+1} </span>{JSON.stringify(tc.input).slice(0,40)} → <span className="text-green-400">{JSON.stringify(tc.expected)}</span>
+          <div key={i} className="font-mono text-[11px] text-gray-400 py-1 border-b border-white/5 last:border-0">
+            <span className="text-cyan-600/50">#{i+1} </span>{JSON.stringify(tc.input).slice(0,40)} <span className="text-gray-600">→</span> <span className="text-cyan-400">{JSON.stringify(tc.expected)}</span>
           </div>
         ))}
       </div>
@@ -512,29 +512,36 @@ function RoundOverModal({ roundIdx, myScore, aiScore, opponentName, onNext, isLa
   const iWon = myScore > aiScore;
   const tied = myScore === aiScore;
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-80 text-center shadow-2xl">
-        <div className="text-5xl mb-3">{tied?"🤝":iWon?"🏆":"😤"}</div>
-        <h3 className="text-xl font-black text-white mb-1 capitalize">{diff} Round {tied?"Tied!":iWon?"Won!":"Lost!"}</h3>
-        <p className="text-gray-400 text-xs mb-4">{tied?"Both solved equally — no point awarded":iWon?"You solved more questions! 🎉":`${opponentName || "AlgoBot"} was faster this round!`}</p>
-        <div className="bg-gray-950 rounded-xl p-4 mb-3 border border-gray-800">
-          <div className="text-[10px] text-gray-500 uppercase mb-2">Round Score</div>
+    <div className="fixed inset-0 bg-[#050b14]/90 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+      <div className="bg-[#0a101f] border border-white/10 rounded-2xl p-8 w-80 text-center shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute -top-10 -left-10 w-32 h-32 bg-[#00f2ff]/20 blur-[50px] rounded-full pointer-events-none" />
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-[#ff007a]/20 blur-[50px] rounded-full pointer-events-none" />
+        
+        <div className="text-5xl mb-3 relative z-10">{tied?"🤝":iWon?"🏆":"😤"}</div>
+        <h3 className="text-2xl font-black text-white mb-1 uppercase tracking-tight relative z-10">Module {tied?"Tied":iWon?"Cleared":"Failed"}</h3>
+        <p className="text-gray-400 text-xs mb-5 uppercase tracking-widest relative z-10">{tied?"No decisive outcome":iWon?"Dominance established":`Compromised by ${opponentName || "AlgoBot"}`}</p>
+        
+        <div className="bg-[#050b14]/80 rounded-xl p-4 mb-3 border border-white/5 relative z-10">
+          <div className="text-[9px] text-[#00f2ff] uppercase mb-2 font-bold tracking-widest">Current Output</div>
           <div className="flex justify-around">
-            <div className="text-center"><div className="text-2xl font-black text-white">{myScore}</div><div className="text-xs text-gray-500">You</div></div>
+            <div className="text-center"><div className="text-3xl font-black text-white">{myScore}</div><div className="text-[10px] text-gray-500 uppercase tracking-widest">Self</div></div>
             <div className="text-gray-700 text-xl self-center">—</div>
-            <div className="text-center"><div className="text-2xl font-black text-white">{aiScore}</div><div className="text-xs text-gray-500">{opponentName || "AlgoBot"}</div></div>
+            <div className="text-center"><div className="text-3xl font-black text-white">{aiScore}</div><div className="text-[10px] text-gray-500 uppercase tracking-widest">{opponentName || "AlgoBot"}</div></div>
           </div>
         </div>
-        <div className="bg-gray-950 rounded-xl p-3 mb-4 border border-gray-800">
-          <div className="text-[10px] text-gray-500 uppercase mb-2">Total Rounds Won</div>
+        
+        <div className="bg-[#050b14]/80 rounded-xl p-3 mb-5 border border-white/5 relative z-10">
+          <div className="text-[9px] text-gray-500 uppercase mb-2 font-bold tracking-widest">Global Standings</div>
           <div className="flex justify-around">
-            <div className="text-center"><div className="text-lg font-black text-purple-400">{totalMyWins}</div><div className="text-xs text-gray-500">You</div></div>
+            <div className="text-center"><div className="text-xl font-black text-[#00f2ff] shadow-[0_0_10px_rgba(0,242,255,0.3)]">{totalMyWins}</div><div className="text-[9px] text-gray-600 uppercase">Self</div></div>
             <div className="text-gray-700 text-lg self-center">—</div>
-            <div className="text-center"><div className="text-lg font-black text-red-400">{totalAiWins}</div><div className="text-xs text-gray-500">{opponentName || "AlgoBot"}</div></div>
+            <div className="text-center"><div className="text-xl font-black text-[#ff007a] shadow-[0_0_10px_rgba(255,0,122,0.3)]">{totalAiWins}</div><div className="text-[9px] text-gray-600 uppercase">{opponentName || "AlgoBot"}</div></div>
           </div>
         </div>
-        <button onClick={onNext} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-sm transition-all">
-          {isLastRound?"See Final Results →":`Next: ${ROUNDS[roundIdx+1]?.toUpperCase()} Round →`}
+        
+        <button onClick={onNext} className="w-full py-3 bg-gradient-to-r from-[#00f2ff] to-blue-600 hover:brightness-125 text-white rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(0,242,255,0.4)] relative z-10">
+          {isLastRound?"Access Final Data >>":`Initialize Level ${ROUNDS.indexOf(diff)+2} >>`}
         </button>
       </div>
     </div>
@@ -553,7 +560,6 @@ function Matchmaking({ username, onReady, setOpponentName, setRoom, setIsAiMode 
 
     const iv = setInterval(()=>{
       setSec(s => {
-        // Agar 10 seconds (ticks) poore ho gaye aur match nahi mila -> AlgoBot trigger!
         if (s >= 9 && !foundMatch) {
           foundMatch = true;
           clearInterval(iv);
@@ -569,12 +575,10 @@ function Matchmaking({ username, onReady, setOpponentName, setRoom, setIsAiMode 
       });
     }, 1000);
     
-    // Request real match from backend
     socket.emit('search_match', { username });
 
-    // Listen for real match found
     socket.on('match_found', (data) => {
-      if (foundMatch) return; // Agar AI fallback pehle ho gaya, toh real match ignore karo
+      if (foundMatch) return; 
       foundMatch = true;
       clearInterval(iv);
       const isMeP1 = data.opponentForP1.username === username;
@@ -597,48 +601,56 @@ function Matchmaking({ username, onReady, setOpponentName, setRoom, setIsAiMode 
   },[username, onReady, setOpponentName, setRoom, setIsAiMode]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
+    <div className="flex flex-col items-center justify-center h-full gap-6 px-4 relative z-10">
       <div className="text-center">
-        <div className="text-5xl mb-3">⚔️</div>
-        <h2 className="text-2xl font-black text-white">Algo<span className="text-purple-400">Arena</span></h2>
-        <p className="text-gray-500 text-sm mt-1">1v1 Coding Battle — 3 Rounds</p>
+        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">DEV<span className="text-[#00f2ff]">_</span>QUEST</h2>
+        <p className="text-[#00f2ff] text-[10px] uppercase tracking-[0.3em] mt-2 font-bold">Neural Combat Sync</p>
       </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-72 text-center">
-        <div className="flex justify-center items-center gap-4 mb-5">
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-14 h-14 rounded-full bg-purple-900/40 border-2 border-purple-500 flex items-center justify-center text-2xl">👤</div>
-            <span className="text-xs text-gray-300">{username}</span>
+      
+      <div className="bg-[#0a101f]/80 backdrop-blur-md border border-white/10 rounded-2xl p-8 w-80 text-center shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+        <div className="flex justify-center items-center gap-6 mb-6">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-full bg-[#00f2ff]/10 border-2 border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)] flex items-center justify-center text-3xl">👤</div>
+            <span className="text-[10px] uppercase tracking-widest text-[#00f2ff] font-bold">{username}</span>
           </div>
-          <span className="text-gray-500 text-xl font-black">VS</span>
-          <div className="flex flex-col items-center gap-1">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-2 transition-all duration-700 ${found?"bg-red-900/40 border-red-500":"bg-gray-800 border-gray-700 animate-pulse"}`}>
+          
+          <div className="flex flex-col gap-1 items-center justify-center">
+             <span className="text-gray-600 text-sm font-black italic">VS</span>
+             <div className="w-px h-8 bg-white/10" />
+          </div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 transition-all duration-700 ${found?"bg-[#ff007a]/10 border-[#ff007a] shadow-[0_0_15px_rgba(255,0,122,0.4)]":"bg-[#050b14] border-white/10 animate-pulse"}`}>
               {found? (isAiFallback ? "🤖" : "🔥") : "?"}
             </div>
-            <span className="text-xs text-gray-400">{found?oppName:"Searching..."}</span>
+            <span className={`text-[10px] uppercase tracking-widest font-bold ${found ? "text-[#ff007a]" : "text-gray-500"}`}>{found?oppName:"Scanning"}</span>
           </div>
         </div>
+        
         {!found?(
-          <>
-            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden mb-2">
-              <div className="h-full bg-purple-500 rounded-full transition-all duration-1000" style={{width:`${(sec/10)*100}%`}}/>
+          <div className="mt-4">
+            <div className="h-1 bg-[#050b14] rounded-full overflow-hidden mb-3 border border-white/5">
+              <div className="h-full bg-gradient-to-r from-[#00f2ff] to-[#ff007a] rounded-full transition-all duration-1000 shadow-[0_0_8px_#00f2ff]" style={{width:`${(sec/10)*100}%`}}/>
             </div>
-            <p className="text-gray-400 text-xs">Looking for real opponent ({sec}/10s)</p>
-          </>
+            <p className="text-[#00f2ff] text-[9px] uppercase tracking-widest font-bold animate-pulse">Awaiting Opponent Connection // {sec}s</p>
+          </div>
         ):(
-          isAiFallback ? (
-            <p className="text-amber-400 font-bold text-sm animate-pulse">No player found. Playing vs AlgoBot!</p>
-          ) : (
-            <p className="text-green-400 font-bold text-sm animate-pulse">Opponent accepted! Starting…</p>
-          )
+          <div className="mt-4">
+             {isAiFallback ? (
+              <p className="text-[#f5a623] font-bold text-[10px] uppercase tracking-widest animate-pulse">Network Timeout. AlgoBot Engaging.</p>
+            ) : (
+              <p className="text-green-400 font-bold text-[10px] uppercase tracking-widest animate-pulse">Connection Established. Linking...</p>
+            )}
+          </div>
         )}
       </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 w-72 text-xs text-gray-500 space-y-1.5">
-        <div className="text-gray-300 font-bold mb-2 text-sm">How it works</div>
-        <div>📝 3 questions per round, shown sequentially</div>
-        <div>🤖 If opponent solves a Q → auto-skip to next</div>
-        <div>🎉 Party popper when YOU solve</div>
-        <div>💥 Bomb blast on OPPONENT when you solve</div>
-        <div>🏆 Most round wins = Champion!</div>
+      
+      <div className="bg-[#0a101f]/50 border border-white/5 rounded-xl p-5 w-80 text-[10px] text-gray-400 space-y-2 uppercase tracking-wider font-mono">
+        <div className="text-[#00f2ff] font-bold mb-3 text-xs italic tracking-tighter">Mission Parameters</div>
+        <div className="flex gap-2 items-start"><span>&gt;</span> 3 Modules per sequence</div>
+        <div className="flex gap-2 items-start"><span>&gt;</span> Enemy bypass auto-skips module</div>
+        <div className="flex gap-2 items-start"><span>&gt;</span> Victory yields visual confirmation</div>
+        <div className="flex gap-2 items-start"><span>&gt;</span> Maximize module completion</div>
       </div>
     </div>
   );
@@ -657,7 +669,7 @@ export default function AlgoArena() {
 
   const [opponentName, setOpponentName] = useState("Opponent");
   const [room, setRoom] = useState("");
-  const [isAiMode, setIsAiMode] = useState(false); // <-- Tracks if we are playing against AlgoBot
+  const [isAiMode, setIsAiMode] = useState(false);
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [qIdx, setQIdx]         = useState(0);
@@ -988,37 +1000,40 @@ export default function AlgoArena() {
   const isAiSolved= (ri,qi)=>!!aiSolvedMap[`${ri}-${qi}`];
 
   if (screen==="lobby") return (
-    <div className="h-screen bg-gray-950 flex items-center justify-center p-6">
-      <div className="max-w-sm w-full text-center">
-        <div className="text-5xl mb-3">⚔️</div>
-        <h1 className="text-3xl font-black text-white mb-1">Algo<span className="text-purple-400">Arena</span></h1>
-        <p className="text-gray-500 text-sm mb-6">1v1 DSA Battle • 3 Rounds • Live Timer</p>
-        <div className="bg-gray-900 rounded-2xl p-5 border border-gray-800 text-left space-y-4">
+    <div className="h-screen bg-[#050b14] bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:40px_40px] flex items-center justify-center p-6 font-sans">
+      <div className="max-w-md w-full text-center relative z-10">
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#00f2ff]/20 blur-[80px] pointer-events-none" />
+        <h1 className="text-4xl font-black text-white italic tracking-tighter mb-1 relative">
+          DEV<span className="text-[#00f2ff]">_</span>QUEST
+        </h1>
+        <p className="text-[#00f2ff] text-[10px] font-bold uppercase tracking-[0.3em] mb-8">Neural Combat Sequence</p>
+        
+        <div className="bg-[#0a101f]/80 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-left space-y-6 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
           <div>
-            <label className="text-xs text-gray-500 block mb-1.5">Your username</label>
-            <input type="text" placeholder="Enter username..."
+            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest block mb-2">Operator Alias</label>
+            <input type="text" placeholder="ENTER_IDENTIFIER"
               value={username} onChange={e=>setUsername(e.target.value)}
               onKeyDown={e=>e.key==="Enter"&&username&&setScreen("searching")}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"/>
+              className="w-full bg-[#050b14] border border-white/10 rounded-xl px-4 py-3 text-[#00f2ff] text-sm font-mono focus:outline-none focus:border-[#00f2ff] focus:shadow-[0_0_10px_rgba(0,242,255,0.2)] transition-all"/>
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1.5">AlgoBot difficulty</label>
+            <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest block mb-2">AlgoBot Difficulty</label>
             <div className="flex gap-2">
               {["easy","medium","hard"].map(d=>(
                 <button key={d} onClick={()=>setAiDiff(d)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all border ${
+                  className={`flex-1 py-2.5 rounded-lg text-[10px] uppercase font-black tracking-widest transition-all border ${
                     aiDiff===d
-                      ?d==="easy"?"bg-green-900/40 border-green-600 text-green-400"
-                        :d==="medium"?"bg-amber-900/40 border-amber-600 text-amber-400"
-                        :"bg-red-900/40 border-red-600 text-red-400"
-                      :"bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300"
+                      ?d==="easy"?"bg-[#00f2ff]/20 border-[#00f2ff] text-[#00f2ff] shadow-[0_0_10px_rgba(0,242,255,0.3)]"
+                        :d==="medium"?"bg-orange-500/20 border-orange-500 text-orange-400 shadow-[0_0_10px_rgba(245,166,35,0.3)]"
+                        :"bg-[#ff007a]/20 border-[#ff007a] text-[#ff007a] shadow-[0_0_10px_rgba(255,0,122,0.3)]"
+                      :"bg-[#050b14] border-white/10 text-gray-500 hover:text-gray-300"
                   }`}>{d}</button>
               ))}
             </div>
           </div>
           <button onClick={()=>username&&setScreen("searching")} disabled={!username}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-all">
-            Find Match →
+            className="w-full py-4 bg-gradient-to-r from-[#00f2ff] to-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed text-[#050b14] rounded-xl font-black text-sm uppercase tracking-widest transition-all hover:brightness-125 shadow-[0_0_20px_rgba(0,242,255,0.3)]">
+            Initialize Scan &gt;&gt;
           </button>
         </div>
       </div>
@@ -1026,47 +1041,46 @@ export default function AlgoArena() {
   );
 
   if (screen==="searching") return (
-    <div className="h-screen bg-gray-950">
+    <div className="h-screen bg-[#050b14] bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:40px_40px] font-sans">
       <Matchmaking username={username} onReady={()=>setScreen("battle")} setOpponentName={setOpponentName} setRoom={setRoom} setIsAiMode={setIsAiMode}/>
     </div>
   );
 
   if (gameOver) return (
-    <div className="relative h-screen bg-gray-950 flex items-center justify-center p-6">
+    <div className="relative h-screen bg-[#050b14] bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:40px_40px] flex items-center justify-center p-6 font-sans">
       {gameOver.win&&<Confetti/>}
-      <div className="text-center z-10 max-w-sm w-full">
-        <div className="text-7xl mb-4">{gameOver.tie?"🤝":gameOver.win?"🏆":"😢"}</div>
-        <h2 className="text-3xl font-black text-white mb-2">
-          {gameOver.tie?"It's a Tie!":gameOver.win?"You're Champion!":`${opponentName} Wins!`}
+      <div className="text-center z-10 max-w-sm w-full bg-[#0a101f]/90 backdrop-blur-md p-8 rounded-2xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
+        {gameOver.win && <div className="absolute inset-0 border-2 border-[#00f2ff] rounded-2xl shadow-[0_0_30px_rgba(0,242,255,0.3)] pointer-events-none" />}
+        <div className="text-6xl mb-4">{gameOver.tie?"🤝":gameOver.win?"🏆":"💀"}</div>
+        <h2 className="text-3xl font-black text-white mb-1 uppercase tracking-tight italic">
+          {gameOver.tie?"Standstill":gameOver.win?"System Master":`Terminated by ${opponentName}`}
         </h2>
-        <p className="text-gray-400 text-sm mb-6">
-          {gameOver.tie?"Equal skill — rematch?":gameOver.win?"Flawless across all rounds!":"Study up and come back!"}
+        <p className="text-[#00f2ff] text-[10px] uppercase tracking-widest font-bold mb-8">
+          {gameOver.tie?"Equilibrium reached":gameOver.win?"Flawless execution across modules":"Re-evaluate logic sequences"}
         </p>
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-6">
-          <div className="text-xs text-gray-500 uppercase tracking-widest mb-4">Final Standings</div>
+        <div className="bg-[#050b14] border border-white/5 rounded-xl p-5 mb-8">
+          <div className="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-4">Final Diagnostics</div>
           <div className="flex justify-around">
             <div className="text-center">
-              <div className="text-4xl font-black text-purple-400">{gameOver.myWins}</div>
-              <div className="text-xs text-gray-400 mt-1">👤 {username}</div>
-              <div className="text-[10px] text-gray-600">rounds won</div>
+              <div className="text-4xl font-black text-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.2)]">{gameOver.myWins}</div>
+              <div className="text-[10px] text-gray-400 mt-2 font-mono uppercase tracking-widest">{username}</div>
             </div>
-            <div className="text-gray-700 text-2xl self-center">VS</div>
+            <div className="text-gray-700 text-sm font-black italic self-center">VS</div>
             <div className="text-center">
-              <div className="text-4xl font-black text-red-400">{gameOver.aiWins}</div>
-              <div className="text-xs text-gray-400 mt-1">{isAiMode ? "🤖" : "👤"} {opponentName}</div>
-              <div className="text-[10px] text-gray-600">rounds won</div>
+              <div className="text-4xl font-black text-[#ff007a] shadow-[0_0_15px_rgba(255,0,122,0.2)]">{gameOver.aiWins}</div>
+              <div className="text-[10px] text-gray-400 mt-2 font-mono uppercase tracking-widest">{opponentName}</div>
             </div>
           </div>
         </div>
-        <button onClick={()=>window.location.reload()} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-sm transition-all">
-          Play Again →
+        <button onClick={()=>window.location.reload()} className="w-full py-4 bg-[#0a101f] border border-[#00f2ff] text-[#00f2ff] hover:bg-[#00f2ff] hover:text-[#050b14] rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,242,255,0.2)]">
+          Reboot System &gt;&gt;
         </button>
       </div>
     </div>
   );
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#050b14] bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:40px_40px] overflow-hidden font-sans text-white">
 
       {showConfetti&&<Confetti/>}
       {showBomb&&<BombBlast/>}
@@ -1082,10 +1096,10 @@ export default function AlgoArena() {
 
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none items-center">
         {toasts.map(t=>(
-          <div key={t.id} className={`rounded-xl px-5 py-2.5 text-sm font-semibold border shadow-xl whitespace-nowrap ${
-            t.type==="success"?"bg-green-900/95 border-green-600 text-green-200"
-            :t.type==="danger"?"bg-red-900/95 border-red-600 text-red-200"
-            :"bg-gray-800 border-gray-700 text-white"
+          <div key={t.id} className={`rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider border backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)] whitespace-nowrap ${
+            t.type==="success"?"bg-[#00f2ff]/10 border-[#00f2ff] text-[#00f2ff]"
+            :t.type==="danger"?"bg-[#ff007a]/10 border-[#ff007a] text-[#ff007a]"
+            :"bg-[#0a101f]/90 border-white/20 text-white"
           }`} style={{animation:"toastin 0.3s ease-out"}}>
             {t.msg}
           </div>
@@ -1093,80 +1107,81 @@ export default function AlgoArena() {
       </div>
       <style>{`@keyframes toastin{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}`}</style>
 
-      <div className="bg-gray-900 border-b border-white/8 px-4 py-2 flex items-center justify-between gap-3">
-        <HPBar hp={myHP} label={`👤 ${username}`} isYou={true}/>
-        <div className="flex flex-col items-center shrink-0 gap-0.5">
-          <div className="flex gap-1 justify-center">
+      <div className="bg-[#0a101f]/80 backdrop-blur-sm border-b border-white/10 px-6 py-3 flex items-center justify-between gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-10 relative">
+        <HPBar hp={myHP} label={`${username}`} isYou={true}/>
+        <div className="flex flex-col items-center shrink-0 gap-1.5">
+          <div className="flex gap-2 justify-center">
             {ROUNDS.map((r,i)=>(
-              <div key={r} className="text-[9px] px-1.5 py-0.5 rounded border uppercase font-bold"
+              <div key={r} className="text-[8px] px-2 py-0.5 rounded border uppercase font-black tracking-widest"
                 style={{
-                  background: i===roundIdx?{easy:"#14532d",medium:"#451a03",hard:"#450a0a"}[r]:i<roundIdx?"#1a1a2e":"#111827",
-                  borderColor:i===roundIdx?{easy:"#22d98a",medium:"#f5a623",hard:"#ff5c5c"}[r]:"#1f2937",
-                  color:i===roundIdx?{easy:"#22d98a",medium:"#f5a623",hard:"#ff5c5c"}[r]:i<roundIdx?"#4b5563":"#374151",
+                  background: i===roundIdx?{easy:"rgba(0,242,255,0.15)",medium:"rgba(245,166,35,0.15)",hard:"rgba(255,0,122,0.15)"}[r]:i<roundIdx?"#050b14":"#0a101f",
+                  borderColor:i===roundIdx?{easy:"#00f2ff",medium:"#f5a623",hard:"#ff007a"}[r]:"rgba(255,255,255,0.05)",
+                  color:i===roundIdx?{easy:"#00f2ff",medium:"#f5a623",hard:"#ff007a"}[r]:i<roundIdx?"#4b5563":"#374151",
+                  boxShadow: i===roundIdx ? `0 0 8px ${ {easy:"#00f2ff",medium:"#f5a623",hard:"#ff007a"}[r] }` : 'none'
                 }}>
                 {i<roundIdx?"✓":r}
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
             <div className="text-center">
-              <span className="text-xl font-black text-white">{myRoundScore}</span>
-              <div className="text-[9px] text-gray-600">you</div>
+              <span className="text-2xl font-black text-white italic">{myRoundScore}</span>
+              <div className="text-[8px] text-[#00f2ff] font-bold uppercase tracking-widest mt-0.5">Self</div>
             </div>
             <LiveTimer seconds={timeLeft}/>
             <div className="text-center">
-              <span className="text-xl font-black text-white">{aiRoundScore}</span>
-              <div className="text-[9px] text-gray-600">{isAiMode ? "bot" : "opp"}</div>
+              <span className="text-2xl font-black text-white italic">{aiRoundScore}</span>
+              <div className="text-[8px] text-[#ff007a] font-bold uppercase tracking-widest mt-0.5">Hostile</div>
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <HPBar hp={aiHP} label={`${isAiMode ? "🤖" : "👤"} ${opponentName}`} isYou={false}/>
+        <div className="flex flex-col items-end gap-2">
+          <HPBar hp={aiHP} label={`${opponentName}`} isYou={false}/>
           <OpponentStatus status={opponentStatus}/>
         </div>
       </div>
 
-      <div className="flex items-center bg-gray-900 border-b border-white/8 px-2 gap-0.5">
+      <div className="flex items-center bg-[#050b14]/90 backdrop-blur-md border-b border-white/5 px-4 gap-1 z-10 relative">
         {questions.map((q,i)=>{
           const me=iMeSolved(roundIdx,i);
           const ai=isAiSolved(roundIdx,i);
           const cur=qIdx===i;
           return (
-            <div key={i} className={`px-3 py-2.5 text-xs font-medium border-b-2 flex items-center gap-1.5 whitespace-nowrap select-none ${
-              cur?"border-purple-400 text-purple-300"
-              :me?"border-green-600 text-green-400"
-              :ai?"border-red-700 text-red-400"
-              :"border-transparent text-gray-600"
+            <div key={i} className={`px-4 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 flex items-center gap-2 whitespace-nowrap select-none transition-colors ${
+              cur?"border-[#00f2ff] text-[#00f2ff] bg-[#00f2ff]/5"
+              :me?"border-[#00f2ff]/30 text-[#00f2ff]/50"
+              :ai?"border-[#ff007a]/30 text-[#ff007a]/50"
+              :"border-transparent text-gray-600 hover:bg-white/5"
             }`}>
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                me?"bg-green-500 text-white"
-                :ai?"bg-red-800 text-red-200"
-                :cur?"bg-purple-700 text-white"
-                :"bg-gray-800 text-gray-600"
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black shrink-0 ${
+                me?"bg-[#00f2ff]/20 text-[#00f2ff] border border-[#00f2ff]"
+                :ai?"bg-[#ff007a]/20 text-[#ff007a] border border-[#ff007a]"
+                :cur?"bg-[#00f2ff] text-[#050b14]"
+                :"bg-[#0a101f] text-gray-600 border border-white/10"
               }`}>
                 {me?"✓":ai?"✗":i+1}
               </span>
-              <span className="hidden sm:inline truncate max-w-24">
+              <span className="hidden sm:inline truncate max-w-28">
                 {q.title.length>16?q.title.slice(0,16)+"…":q.title}
               </span>
             </div>
           );
         })}
-        <div className="ml-auto flex items-center gap-3 pr-3 shrink-0">
-          <div className="text-xs text-gray-500 hidden sm:block">
-            Rounds <span className="text-purple-400 font-bold">{myTotalWins}</span>
-            <span className="text-gray-700 mx-0.5">–</span>
-            <span className="text-red-400 font-bold">{aiTotalWins}</span>
+        <div className="ml-auto flex items-center gap-4 pr-2 shrink-0">
+          <div className="text-[9px] text-gray-500 uppercase font-black tracking-widest hidden sm:block">
+            Wins <span className="text-[#00f2ff] ml-1">{myTotalWins}</span>
+            <span className="text-white/20 mx-1.5">//</span>
+            <span className="text-[#ff007a]">{aiTotalWins}</span>
           </div>
           <select value={language} onChange={e=>setLanguage(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none">
+            className="bg-[#0a101f] border border-white/10 text-[#00f2ff] text-[10px] font-black uppercase tracking-widest rounded px-2 py-1.5 focus:outline-none focus:border-[#00f2ff]">
             {LANGUAGES.map(l=><option key={l.id} value={l.id}>{l.label}</option>)}
           </select>
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-5 min-h-0">
-        <div className="col-span-2 border-r border-white/8 min-h-0 overflow-hidden">
+      <div className="flex-1 grid grid-cols-5 min-h-0 relative z-0">
+        <div className="col-span-2 border-r border-white/5 bg-[#050b14]/80 backdrop-blur-sm min-h-0 overflow-hidden">
           <QuestionPanel
             question={currentQ} difficulty={difficulty}
             qIdx={qIdx} totalQs={totalQs}
@@ -1174,19 +1189,19 @@ export default function AlgoArena() {
           />
         </div>
 
-        <div className="col-span-3 flex flex-col min-h-0">
+        <div className="col-span-3 flex flex-col min-h-0 bg-[#050b14]">
           {iMeSolved(roundIdx,qIdx)&&(
-            <div className="bg-green-900/20 border-b border-green-800/40 px-4 py-1.5 text-xs text-green-400 font-semibold shrink-0 flex items-center gap-2">
-              ✅ Solved! Great job.
+            <div className="bg-[#00f2ff]/10 border-b border-[#00f2ff]/30 px-5 py-2 text-[10px] text-[#00f2ff] font-black uppercase tracking-widest shrink-0 flex items-center gap-2">
+              <span className="animate-pulse">_</span> Verification Successful // Module Locked
             </div>
           )}
           {!iMeSolved(roundIdx,qIdx)&&isAiSolved(roundIdx,qIdx)&&(
-            <div className="bg-red-900/20 border-b border-red-800/40 px-4 py-1.5 text-xs text-red-400 font-semibold shrink-0 flex items-center gap-2">
-              🤖 {opponentName} solved this — you can still try it for practice!
+            <div className="bg-[#ff007a]/10 border-b border-[#ff007a]/30 px-5 py-2 text-[10px] text-[#ff007a] font-black uppercase tracking-widest shrink-0 flex items-center gap-2">
+              <span className="animate-pulse">⚠</span> Warning: {opponentName} breached this module. Simulation remains active for practice.
             </div>
           )}
 
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 pt-2">
             <Editor
               height="100%"
               language={LANGUAGES.find(l=>l.id===language)?.monaco||"javascript"}
@@ -1196,51 +1211,53 @@ export default function AlgoArena() {
                 fontSize:13, minimap:{enabled:false},
                 scrollBeyondLastLine:false, lineNumbers:"on",
                 wordWrap:"on", tabSize:2, automaticLayout:true,
-                padding:{top:12}, fontFamily:"'JetBrains Mono','Fira Code',monospace", fontLigatures:true,
+                padding:{top:16}, fontFamily:"'JetBrains Mono','Fira Code',monospace", fontLigatures:true,
               }}
             />
           </div>
 
           {testResults&&(
-            <div className="border-t border-gray-800 bg-gray-950 px-4 py-3 max-h-36 overflow-y-auto shrink-0">
-              <div className={`text-xs font-bold mb-2 ${testResults.allPassed?"text-green-400":"text-red-400"}`}>
-                {testResults.allPassed?"✅ All test cases passed!":"❌ Some test cases failed"}
+            <div className="border-t border-white/5 bg-[#0a101f] px-5 py-4 max-h-40 overflow-y-auto shrink-0 shadow-[inset_0_10px_20px_rgba(0,0,0,0.5)]">
+              <div className={`text-[10px] font-black uppercase tracking-widest mb-3 ${testResults.allPassed?"text-[#00f2ff]":"text-[#ff007a]"}`}>
+                {testResults.allPassed?"System Integrity Verified":"Anomalies Detected in Output"}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {testResults.results.map((r,i)=>(
-                  <div key={i} className={`text-xs font-mono flex gap-2 rounded px-2 py-1 ${r.passed?"bg-green-900/20 text-green-400":"bg-red-900/20 text-red-400"}`}>
-                    <span className="shrink-0">{r.passed?"✓":"✗"} #{i+1}</span>
-                    <span className="text-gray-500 truncate flex-1">in: {r.input.slice(0,28)}</span>
-                    {!r.passed&&<span className="truncate">got: {String(r.output).slice(0,22)}</span>}
+                  <div key={i} className={`text-[11px] font-mono flex gap-3 rounded px-3 py-1.5 border ${r.passed?"bg-[#00f2ff]/5 border-[#00f2ff]/20 text-cyan-400":"bg-[#ff007a]/5 border-[#ff007a]/20 text-[#ff007a]"}`}>
+                    <span className="shrink-0">{r.passed?"✓":"✗"} TEST_{i+1}</span>
+                    <span className="text-gray-500 truncate flex-1">IN: {r.input.slice(0,28)}</span>
+                    {!r.passed&&<span className="truncate text-white/80">OUT: {String(r.output).slice(0,22)}</span>}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="border-t border-white/8 bg-gray-900 flex items-center justify-between px-4 py-2.5 shrink-0">
-            <div className="flex gap-3 text-xs text-gray-500 items-center">
-              <span className="font-mono text-gray-400">Q{qIdx+1}/{totalQs}</span>
-              <span className="text-gray-700">•</span>
-              <span>You <b className="text-green-400">{myRoundScore}</b></span>
-              <span className="text-gray-700">vs</span>
-              <span>{isAiMode ? "Bot" : "Opp"} <b className="text-red-400">{aiRoundScore}</b></span>
-              <span className="text-gray-700 hidden md:inline">• Ctrl+Enter</span>
+          <div className="border-t border-white/10 bg-[#0a101f] flex items-center justify-between px-5 py-3 shrink-0 z-10">
+            <div className="flex gap-4 text-[10px] text-gray-500 uppercase tracking-widest font-black items-center">
+              <span className="font-mono text-[#00f2ff]">MOD {qIdx+1}/{totalQs}</span>
+              <span className="text-white/10">//</span>
+              <span>Self <b className="text-[#00f2ff] text-sm ml-1">{myRoundScore}</b></span>
+              <span className="text-white/10">//</span>
+              <span>Hostile <b className="text-[#ff007a] text-sm ml-1">{aiRoundScore}</b></span>
               {language!=="javascript"&&submitting&&(
-                <span className="text-blue-400 text-xs animate-pulse">⏳ Running on Judge0…</span>
+                <>
+                  <span className="text-white/10 hidden md:inline">//</span>
+                  <span className="text-blue-400 text-[9px] animate-pulse hidden md:inline">Compiling on remote node...</span>
+                </>
               )}
             </div>
             <button
               onClick={handleSubmit}
               disabled={submitting||iMeSolved(roundIdx,qIdx)}
-              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${
+              className={`px-8 py-2.5 rounded-lg text-[10px] uppercase tracking-widest font-black transition-all ${
                 iMeSolved(roundIdx,qIdx)
-                  ?"bg-green-900/30 border border-green-700/30 text-green-400 cursor-default"
+                  ?"bg-[#00f2ff]/10 border border-[#00f2ff]/30 text-[#00f2ff] cursor-default"
                   :submitting
-                  ?"bg-gray-700 text-gray-400 cursor-wait"
-                  :"bg-purple-600 hover:bg-purple-500 active:scale-95 text-white"
+                  ?"bg-[#050b14] border border-white/10 text-gray-500 cursor-wait"
+                  :"bg-gradient-to-r from-[#00f2ff] to-[#3b82f6] text-[#050b14] hover:brightness-125 active:scale-95 shadow-[0_0_15px_rgba(0,242,255,0.4)]"
               }`}>
-              {iMeSolved(roundIdx,qIdx)?"✅ Solved":submitting?(language==="javascript"?"Running…":"Judge0…"):"Submit →"}
+              {iMeSolved(roundIdx,qIdx)?"Verified":submitting?(language==="javascript"?"Executing":"Compiling"):"Execute Sequence >>"}
             </button>
           </div>
         </div>
