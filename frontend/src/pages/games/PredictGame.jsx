@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flame, Scissors, Zap, Shield, ArrowLeft, CheckCircle2, AlertTriangle, Terminal } from 'lucide-react';
 import axios from 'axios';
-
+import { API_URL } from '../../config';
 const PredictGame = () => {
   const navigate = useNavigate();
 
@@ -154,7 +154,7 @@ const PredictGame = () => {
         const newCoins = (userData.coins || 0) + coinsEarned;
         const updatedUser = { ...userData, coins: newCoins };
 
-        axios.post('http://localhost:5000/api/auth/update-stats', {
+        axios.post(`${API_URL}/api/auth/update-stats`, {
           userId: userData.id,
           coins: newCoins,
           activeAvatarId: userData.activeAvatarId,

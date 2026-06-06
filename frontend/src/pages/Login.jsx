@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Mail, Gamepad2, Zap, Cpu } from 'lucide-react';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,7 +21,9 @@ const Login = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const url = isLogin ? 'http://localhost:5000/api/auth/login' : 'http://localhost:5000/api/auth/register';
+      const url = isLogin
+  ? `${API_URL}/api/auth/login`
+  : `${API_URL}/api/auth/register`;
       const payload = isLogin ? { email, password } : { username, email, password };
 
       const response = await axios.post(url, payload);

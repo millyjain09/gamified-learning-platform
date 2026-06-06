@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 const PerfectedGamifiedDashboard = () => {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ const PerfectedGamifiedDashboard = () => {
     const fetchRank = async () => {
       if (user.id && user.name !== "GUEST_PLAYER") {
         try {
-          const response = await axios.get(`http://localhost:5000/api/auth/rank/${user.id}`);
+          const response = await axios.get(`${API_URL}/api/auth/rank/${user.id}`);
           setLiveRank(response.data.rank);
         } catch (error) { setLiveRank("?"); }
       } else { setLiveRank("-"); }
@@ -108,7 +109,8 @@ const PerfectedGamifiedDashboard = () => {
 
     try {
       if (user.id) {
-        await axios.post('http://localhost:5000/api/auth/update-stats', { userId: user.id, coins: newCoins, activeAvatarId: newActiveAvatar, unlockedAvatars: newUnlockedAvatars });
+        await axios.post(`${API_URL}/api/auth/update-stats`, 
+           { userId: user.id, coins: newCoins, activeAvatarId: newActiveAvatar, unlockedAvatars: newUnlockedAvatars });
       }
       setUser(updatedUserData);
       localStorage.setItem('user', JSON.stringify(updatedUserData));

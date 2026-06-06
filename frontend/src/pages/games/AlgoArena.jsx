@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import axios from "axios"; 
 import { io } from "socket.io-client";
+import { API_URL } from "../../config";
 
 const LANGUAGES = [
   { id: "javascript", label: "JS",   monaco: "javascript", judge0Id: 63  },
@@ -13,7 +14,7 @@ const LANGUAGES = [
 const JUDGE0_URL = "https://ce.judge0.com";
 const ROUND_TIME = 5 * 60;
 const ROUNDS = ["easy", "medium", "hard"];
-const socket = io("http://localhost:5000");
+const socket = io(API_URL);
 
 const QUESTIONS = {
   easy: [
@@ -1006,7 +1007,7 @@ export default function AlgoArena() {
             const newCoins = (currentUser.coins || 0) + 100;
             const updatedUser = { ...currentUser, coins: newCoins };
 
-            axios.post('http://localhost:5000/api/auth/update-stats', {
+            axios.post(`${API_URL}/api/auth/update-stats`, {
               userId: currentUser.id,
               coins: newCoins,
               activeAvatarId: currentUser.activeAvatarId,
