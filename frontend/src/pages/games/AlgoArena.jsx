@@ -369,7 +369,7 @@ async function runCodeJudge0(code, question, language) {
   return { results, allPassed };
 }
 
-/* ─── UI COMPONENTS (Confetti, Blast, HP Bar, Timer, etc) ─── */
+/* ─── UI COMPONENTS ─── */
 function Confetti() {
   const cols = ["#00f2ff","#ff007a","#f5a623","#9b7fff","#4fa3e0","#facc15","#34d399"];
   const pieces = Array.from({ length: 80 }, (_, i) => ({
@@ -453,6 +453,7 @@ const STATUS = {
   solved:     { icon:"✅", label:"Solved!",       cls:"text-green-400  bg-green-900/30  border-green-700/40 shadow-[0_0_10px_rgba(74,222,128,0.2)]" },
   failed:     { icon:"❌", label:"Wrong ans",    cls:"text-[#ff007a]    bg-pink-900/30    border-[#ff007a]/40 shadow-[0_0_10px_rgba(255,0,122,0.2)]" },
 };
+
 function OpponentStatus({ status }) {
   const s = STATUS[status] || STATUS.idle;
   return (
@@ -464,9 +465,9 @@ function OpponentStatus({ status }) {
 
 function QuestionPanel({ question, difficulty, qIdx, totalQs, mySolved, aiSolved }) {
   const cfg = {
-    easy:   { col:"#00f2ff", bg:"bg-cyan-900/20",  bdr:"border-[#00f2ff]/30",  label:"Level 1"   },
+    easy:   { col:"#00f2ff", bg:"bg-cyan-900/20",  bdr:"border-[#00f2ff]/30",  label:"Level 1"  },
     medium: { col:"#f5a623", bg:"bg-orange-900/20",  bdr:"border-orange-500/30",  label:"Level 2" },
-    hard:   { col:"#ff007a", bg:"bg-pink-900/20",    bdr:"border-[#ff007a]/30",    label:"Level 3"   },
+    hard:   { col:"#ff007a", bg:"bg-pink-900/20",    bdr:"border-[#ff007a]/30",    label:"Level 3"  },
   }[difficulty];
   return (
     <div className="h-full overflow-y-auto p-4 text-sm font-sans">
@@ -548,18 +549,29 @@ function RoundOverModal({ roundIdx, myScore, aiScore, opponentName, onNext, isLa
   );
 }
 
-// ---> MATCHMAKING: 10 SECONDS AI FALLBACK ADDED HERE <---
+// ---> YAHAN CHANGE HUA HAI: MATCHMAKING SCREEN (1v1 Action Theme) <---
 function Matchmaking({ username, onReady, setOpponentName, setRoom, setIsAiMode }) {
   const [sec, setSec] = useState(0);
   const [found, setFound] = useState(false);
   const [oppName, setOppName] = useState("");
   const [isAiFallback, setIsAiFallback] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
+  // Sound Effects references
+  const tickAudio = useRef(typeof Audio !== "undefined" ? new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3') : null);
+  const boomAudio = useRef(typeof Audio !== "undefined" ? new Audio('https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3') : null);
+
+  // Matchmaking Logic
   useEffect(()=>{
     let foundMatch = false;
 
     const iv = setInterval(()=>{
       setSec(s => {
+        if (!foundMatch && tickAudio.current) {
+          tickAudio.current.volume = 0.2;
+          tickAudio.current.play().catch(()=>{}); // Catch to prevent browser autoplay policy errors
+        }
+
         if (s >= 9 && !foundMatch) {
           foundMatch = true;
           clearInterval(iv);
@@ -568,7 +580,8 @@ function Matchmaking({ username, onReady, setOpponentName, setRoom, setIsAiMode 
           setOppName("AlgoBot");
           setOpponentName("AlgoBot");
           setIsAiMode(true);
-          setTimeout(()=>onReady(), 2000);
+          if (boomAudio.current) { boomAudio.current.volume = 0.4; boomAudio.current.play().catch(()=>{}); }
+          startCountdown();
           return s + 1;
         }
         return s + 1;
@@ -591,7 +604,8 @@ function Matchmaking({ username, onReady, setOpponentName, setRoom, setIsAiMode 
       setRoom(data.room);
       setIsAiMode(false);
       
-      setTimeout(()=>onReady(), 2000);
+      if (boomAudio.current) { boomAudio.current.volume = 0.4; boomAudio.current.play().catch(()=>{}); }
+      startCountdown();
     });
 
     return ()=>{
@@ -600,57 +614,119 @@ function Matchmaking({ username, onReady, setOpponentName, setRoom, setIsAiMode 
     };
   },[username, onReady, setOpponentName, setRoom, setIsAiMode]);
 
+  // Handle the "3..2..1" transition
+  const startCountdown = () => {
+    let count = 3;
+    const countIv = setInterval(() => {
+      count -= 1;
+      setCountdown(count);
+      if (count <= 0) {
+        clearInterval(countIv);
+        onReady();
+      }
+    }, 1000);
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 px-4 relative z-10">
-      <div className="text-center">
-        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">DEV<span className="text-[#00f2ff]">_</span>QUEST</h2>
-        <p className="text-[#00f2ff] text-[10px] uppercase tracking-[0.3em] mt-2 font-bold">Neural Combat Sync</p>
-      </div>
+    <div className="absolute inset-0 bg-[#050b14] flex flex-col justify-end overflow-hidden font-sans select-none text-white z-50">
       
-      <div className="bg-[#0a101f]/80 backdrop-blur-md border border-white/10 rounded-2xl p-8 w-80 text-center shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-        <div className="flex justify-center items-center gap-6 mb-6">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-[#00f2ff]/10 border-2 border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)] flex items-center justify-center text-3xl">👤</div>
-            <span className="text-[10px] uppercase tracking-widest text-[#00f2ff] font-bold">{username}</span>
-          </div>
-          
-          <div className="flex flex-col gap-1 items-center justify-center">
-             <span className="text-gray-600 text-sm font-black italic">VS</span>
-             <div className="w-px h-8 bg-white/10" />
-          </div>
-          
-          <div className="flex flex-col items-center gap-2">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 transition-all duration-700 ${found?"bg-[#ff007a]/10 border-[#ff007a] shadow-[0_0_15px_rgba(255,0,122,0.4)]":"bg-[#050b14] border-white/10 animate-pulse"}`}>
-              {found? (isAiFallback ? "🤖" : "🔥") : "?"}
-            </div>
-            <span className={`text-[10px] uppercase tracking-widest font-bold ${found ? "text-[#ff007a]" : "text-gray-500"}`}>{found?oppName:"Scanning"}</span>
-          </div>
+      {/* Background Animated Split */}
+      <div className="absolute inset-0 z-0 flex opacity-80">
+        <div 
+          className="w-[55%] h-full bg-gradient-to-br from-[#020617] via-[#0ea5e9]/20 to-transparent border-r-[1px] border-[#0ea5e9]/40" 
+          style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 0% 100%)' }}
+        ></div>
+        <div 
+          className="absolute right-0 w-[55%] h-full bg-gradient-to-bl from-[#020617] via-[#f43f5e]/20 to-transparent border-l-[1px] border-[#f43f5e]/40" 
+          style={{ clipPath: 'polygon(25% 0, 100% 0, 100% 100%, 0% 100%)' }}
+        ></div>
+      </div>
+
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+
+      {/* Center VS Logo & Animations */}
+      <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center">
+        
+        {/* Animated Radar Behind VS */}
+        <div className="absolute w-[300px] h-[300px] rounded-full border border-[#0ea5e9]/20 animate-[radarSpin_4s_linear_infinite] flex items-center justify-center -z-10">
+           <div className="w-full h-full rounded-full border-t border-l border-[#0ea5e9]/60"></div>
+           <div className="absolute w-[200px] h-[200px] rounded-full border border-[#f43f5e]/20 animate-[radarSpin_3s_linear_infinite_reverse]">
+              <div className="w-full h-full rounded-full border-b border-r border-[#f43f5e]/60"></div>
+           </div>
+        </div>
+
+        {/* Glowing VS text (Glitches on Found) */}
+        <div className={`relative ${found ? 'animate-[glitch_0.3s_ease-in-out]' : ''}`}>
+          <h1 className="text-7xl md:text-9xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+            VS
+          </h1>
+          {found && <div className="absolute inset-0 bg-white blur-2xl opacity-30 rounded-full animate-ping"></div>}
+        </div>
+      </div>
+
+      {/* Left Team (Blue - You) */}
+      <div className="absolute top-[40%] left-[5%] lg:left-[15%] -translate-y-1/2 z-10 flex items-center gap-6 animate-[slideInLeft_0.6s_ease-out]">
+        <div className="relative group">
+           <div className="w-24 h-24 md:w-32 md:h-32 bg-[#020617]/80 backdrop-blur-md border-2 border-[#0ea5e9] rounded-2xl flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(14,165,233,0.3)]">
+             <div className="text-6xl md:text-7xl opacity-90 drop-shadow-[0_0_10px_rgba(14,165,233,0.8)]">👤</div>
+           </div>
+           <div className="absolute -bottom-3 -right-3 w-8 h-8 bg-[#0ea5e9] rounded-lg rotate-45 flex items-center justify-center shadow-[0_0_15px_#0ea5e9]">
+             <div className="-rotate-45 text-[10px] font-black text-[#020617]">P1</div>
+           </div>
+        </div>
+        <div className="flex flex-col">
+           <span className="text-xs text-[#0ea5e9] font-bold uppercase tracking-[0.3em] mb-1">Self_Node</span>
+           <span className="text-2xl md:text-4xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_10px_#0ea5e9]">{username}</span>
+        </div>
+      </div>
+
+      {/* Right Team (Red - Opponent) */}
+      <div className="absolute top-[40%] right-[5%] lg:right-[15%] -translate-y-1/2 z-10 flex flex-row-reverse items-center gap-6 animate-[slideInRight_0.6s_ease-out]">
+        <div className="relative group">
+           <div className={`w-24 h-24 md:w-32 md:h-32 bg-[#020617]/80 backdrop-blur-md border-2 rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-300 ${found ? 'border-[#f43f5e] shadow-[0_0_30px_rgba(244,63,94,0.3)]' : 'border-slate-600 shadow-[0_0_15px_rgba(255,255,255,0.05)]'}`}>
+             {found ? (
+                <div className={`text-6xl md:text-7xl opacity-90 drop-shadow-[0_0_10px_rgba(244,63,94,0.8)] ${isAiFallback ? '' : 'animate-bounce'}`}>
+                  {isAiFallback ? "🤖" : "🔥"}
+                </div>
+             ) : (
+                <div className="w-10 h-10 border-4 border-slate-600 border-t-slate-300 rounded-full animate-spin"></div>
+             )}
+           </div>
+           <div className={`absolute -bottom-3 -left-3 w-8 h-8 rounded-lg rotate-45 flex items-center justify-center transition-colors ${found ? 'bg-[#f43f5e] shadow-[0_0_15px_#f43f5e]' : 'bg-slate-600'}`}>
+             <div className="-rotate-45 text-[10px] font-black text-[#020617]">P2</div>
+           </div>
+        </div>
+        <div className="flex flex-col items-end">
+           <span className={`text-xs font-bold uppercase tracking-[0.3em] mb-1 ${found ? 'text-[#f43f5e]' : 'text-slate-500'}`}>
+             {found ? 'Enemy_Node' : 'Scanning'}
+           </span>
+           <span className={`text-2xl md:text-4xl font-black uppercase tracking-widest transition-colors ${found ? 'text-white drop-shadow-[0_0_10px_#f43f5e] animate-[glitch_0.2s_ease-in-out]' : 'text-slate-600'}`}>
+             {found ? oppName : "UNKNOWN"}
+           </span>
+        </div>
+      </div>
+
+      {/* Bottom Minimalist Timer & Info */}
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center z-30 w-full">
+        {/* Dynamic Timer Display */}
+        <div className={`font-mono text-3xl md:text-5xl font-black tracking-[0.2em] mb-2 drop-shadow-[0_0_15px_currentColor] ${found ? 'text-white' : 'text-[#0ea5e9]'}`}>
+          {found 
+            ? `00:0${countdown}` 
+            : `00:${sec.toString().padStart(2, '0')}`
+          }
         </div>
         
-        {!found?(
-          <div className="mt-4">
-            <div className="h-1 bg-[#050b14] rounded-full overflow-hidden mb-3 border border-white/5">
-              <div className="h-full bg-gradient-to-r from-[#00f2ff] to-[#ff007a] rounded-full transition-all duration-1000 shadow-[0_0_8px_#00f2ff]" style={{width:`${(sec/10)*100}%`}}/>
-            </div>
-            <p className="text-[#00f2ff] text-[9px] uppercase tracking-widest font-bold animate-pulse">Awaiting Opponent Connection // {sec}s</p>
+        {/* Status Text */}
+        <div className="flex items-center gap-3">
+          {!found && <div className="w-2 h-2 rounded-full bg-[#0ea5e9] animate-ping"></div>}
+          <div className={`text-xs md:text-sm font-bold uppercase tracking-[0.3em] ${found ? 'text-[#f43f5e]' : 'text-slate-400'}`}>
+            {found ? "MATCH SECURED. SEQUENCE INITIATING." : "ESTABLISHING NEURAL LINK..."}
           </div>
-        ):(
-          <div className="mt-4">
-             {isAiFallback ? (
-              <p className="text-[#f5a623] font-bold text-[10px] uppercase tracking-widest animate-pulse">Network Timeout. AlgoBot Engaging.</p>
-            ) : (
-              <p className="text-green-400 font-bold text-[10px] uppercase tracking-widest animate-pulse">Connection Established. Linking...</p>
-            )}
-          </div>
-        )}
-      </div>
-      
-      <div className="bg-[#0a101f]/50 border border-white/5 rounded-xl p-5 w-80 text-[10px] text-gray-400 space-y-2 uppercase tracking-wider font-mono">
-        <div className="text-[#00f2ff] font-bold mb-3 text-xs italic tracking-tighter">Mission Parameters</div>
-        <div className="flex gap-2 items-start"><span>&gt;</span> 3 Modules per sequence</div>
-        <div className="flex gap-2 items-start"><span>&gt;</span> Enemy bypass auto-skips module</div>
-        <div className="flex gap-2 items-start"><span>&gt;</span> Victory yields visual confirmation</div>
-        <div className="flex gap-2 items-start"><span>&gt;</span> Maximize module completion</div>
+        </div>
+
+        {/* Decorative thin line */}
+        <div className="w-[60%] h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mt-6"></div>
       </div>
     </div>
   );
@@ -923,8 +999,6 @@ export default function AlgoArena() {
           socket.emit('question_solved', { room, qIdx });
         }
 
-        // ---> FIX: EVERY QUESTION COIN UPDATE <---
-        // Fetching directly from localStorage inside the function ensures we ALWAYS have the latest coin balance
         const currentUserStr = localStorage.getItem('user');
         if (currentUserStr) {
           const currentUser = JSON.parse(currentUserStr);
@@ -944,7 +1018,6 @@ export default function AlgoArena() {
             }).catch(err => console.error("Coin update failed", err));
           }
         }
-        // ------------------------------------------------------------
 
         setMySolvedMap(prev=>{
           if (prev[key]) return prev;
@@ -1041,8 +1114,32 @@ export default function AlgoArena() {
   );
 
   if (screen==="searching") return (
-    <div className="h-screen bg-[#050b14] bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:40px_40px] font-sans">
+    <div className="h-screen bg-[#050b14] font-sans">
       <Matchmaking username={username} onReady={()=>setScreen("battle")} setOpponentName={setOpponentName} setRoom={setRoom} setIsAiMode={setIsAiMode}/>
+      
+      {/* Keyframe Animations added globally for Matchmaking Screen */}
+      <style>{`
+        @keyframes slideInLeft {
+          from { transform: translateX(-100px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(100px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes radarSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes glitch {
+          0% { transform: translate(0) scale(1); filter: hue-rotate(0deg); }
+          20% { transform: translate(-2px, 2px) scale(1.05); filter: hue-rotate(90deg); }
+          40% { transform: translate(-2px, -2px) scale(0.95); filter: hue-rotate(180deg); }
+          60% { transform: translate(2px, 2px) scale(1.02); filter: hue-rotate(270deg); }
+          80% { transform: translate(2px, -2px) scale(0.98); filter: hue-rotate(360deg); }
+          100% { transform: translate(0) scale(1); filter: hue-rotate(0deg); }
+        }
+      `}</style>
     </div>
   );
 

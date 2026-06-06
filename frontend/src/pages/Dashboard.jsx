@@ -144,9 +144,9 @@ const PerfectedGamifiedDashboard = () => {
       >
         {/* LOGO */}
         <div className="pointer-events-auto flex items-center gap-2">
-           <Cpu className="text-[#00E5FF] w-5 h-5 md:w-6 md:h-6 animate-pulse" />
+            
            <h1 className="text-xl md:text-2xl font-black tracking-widest text-white uppercase italic">
-             DEV<span className="text-[#00E5FF]">_QUEST</span>
+             Algo<span className="text-[#00E5FF]">Yudh</span>
            </h1>
         </div>
 

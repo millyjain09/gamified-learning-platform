@@ -70,7 +70,7 @@ const DSAMissions = () => {
     },
     {
       id: 'interview',
-      title: "GRAPHVILLA",
+      title: "RatMaze",
       desc: "Survival back-to-back mock technical interview questions. The Boss fight.",
       icon: <ShieldAlert className="w-6 h-6 text-[#B026FF]" />,
       hex: "#B026FF",

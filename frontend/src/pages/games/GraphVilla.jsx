@@ -3,20 +3,24 @@ import axios from 'axios';
 
 const GRID = 11;
 
-const AlgoYudhRatMaze = () => {
+const GrowtixRatMaze = () => {
   const animTimer = useRef(null);
   const [userData, setUserData] = useState(() => JSON.parse(localStorage.getItem('user')) || null);
   
-  // --- Simplified Boilerplate for the user ---
+  // --- SINGLE EDITOR BOILERPLATE ---
   const initialBoilerplate = `function solve(maze, start, end, size) {
   const path = [];
   const visited = Array(size).fill().map(() => Array(size).fill().map(() => [false, false]));
+  let stepCount = 0; // Safety limit
 
   function backtrack(r, c, hasKey) {
+    // Prevent infinite loops from crashing the browser
+    if (stepCount++ > 2500) throw new Error("Infinite Loop or Max Steps Exceeded!");
+
     // Basic bounds checking
     if (r < 0 || c < 0 || r >= size || c >= size || maze[r][c] === 1) return false;
     
-    // --- WRITE YOUR LOGIC HERE ---
+    // ⬇️ --- WRITE YOUR LOGIC BELOW --- ⬇️
     // 1. Check if the current cell is 'FIRE'. If yes, return false immediately.
     
 
@@ -25,7 +29,7 @@ const AlgoYudhRatMaze = () => {
 
     // 3. Update currentKey. If the cell is 'KEY', currentKey becomes true.
     let currentKey = hasKey; // UPDATE THIS
-    // -----------------------------
+    // ⬆️ --- WRITE YOUR LOGIC ABOVE --- ⬆️
 
     let kIdx = currentKey ? 1 : 0;
     if (visited[r][c][kIdx]) return false;
@@ -38,10 +42,7 @@ const AlgoYudhRatMaze = () => {
     if (r === end.r && c === end.c) return true;
 
     // Explore: Down, Right, Up, Left
-    if (backtrack(r + 1, c, currentKey)) return true;
-    if (backtrack(r, c + 1, currentKey)) return true;
-    if (backtrack(r - 1, c, currentKey)) return true;
-    if (backtrack(r, c - 1, currentKey)) return true;
+   
 
     // Backtrack
     path.push({ r, c, type: 'back', hasKey: currentKey });
@@ -58,7 +59,7 @@ const AlgoYudhRatMaze = () => {
   const [vizIdx, setVizIdx] = useState(-1);
   const [hasKey, setHasKey] = useState(false);
   const [status, setStatus] = useState('idle');
-  const [aiMsg, setAiMsg] = useState("AI Coach: Ready? Complete the TODOs to guide the mouse!");
+  const [aiMsg, setAiMsg] = useState("AI Coach: Ready? Complete the logic block to guide the mouse!");
   const [speed, setSpeed] = useState(150);
   const [overlay, setOverlay] = useState({ show: false, icon: '', title: '', btn: '', bg: '', stats: null });
   const [optimalPathLength, setOptimalPathLength] = useState(0);
@@ -117,7 +118,6 @@ const AlgoYudhRatMaze = () => {
       };
       carve(0, 0); m[GRID-1][GRID-1] = 0;
 
-      // Base path without obstacles
       let basePath = getPath(m, [0, 0], [GRID-1, GRID-1]);
       
       if (basePath.length > 5) {
@@ -137,7 +137,6 @@ const AlgoYudhRatMaze = () => {
         }
       }
       
-      // Verify final solvability with obstacles
       mainRoad = getPath(m, [0, 0], [GRID-1, GRID-1]);
     }
 
@@ -150,24 +149,29 @@ const AlgoYudhRatMaze = () => {
 
   const runCode = (customCode = null) => {
     clearInterval(animTimer.current);
-    const codeToEval = customCode || code;
+    const codeToEval = customCode !== null ? customCode : code;
+    
     try {
-      const userFn = new Function('maze', 'start', 'end', 'size', `${codeToEval}; return solve(maze, start, end, size);`);
+      // Create function directly from editor code
+      const userFn = new Function('maze', 'start', 'end', 'size', `${codeToEval}\nreturn solve(maze, start, end, size);`);
       
       const t0 = performance.now();
       const pathSteps = userFn(maze.map(r => [...r]), { r: 0, c: 0 }, { r: GRID - 1, c: GRID - 1 }, GRID);
       const t1 = performance.now();
       const execTime = (t1 - t0).toFixed(2);
 
-      if (!pathSteps || pathSteps.length === 0) {
-        setAiMsg("AI Coach: The mouse didn't move! Did you return false too early?");
+      if (!pathSteps || pathSteps.length <= 1) {
+        setAiMsg("AI Coach: The mouse didn't move! Did your logic return false too early?");
+        setOverlay({ show: true, icon: '🛑', title: 'LOGIC FAILED: NO MOVEMENT', btn: 'FIX CODE', bg: 'rgba(30,41,59,0.95)' });
         return;
       }
       
       setSteps(pathSteps);
       animate(pathSteps, execTime);
     } catch (err) {
-      setAiMsg("AI Coach: Syntax Error - " + err.message.split('\n')[0]);
+      // Catch syntax errors and infinite loops
+      setAiMsg("AI Coach: Error - " + err.message.split('\n')[0]);
+      setOverlay({ show: true, icon: '⚠️', title: 'RUNTIME ERROR', btn: 'FIX CODE', bg: 'rgba(153,27,27,0.95)' });
     }
   };
 
@@ -176,7 +180,6 @@ const AlgoYudhRatMaze = () => {
     const baseScore = 100;
     const speedBonus = execTime < 2 ? 50 : execTime < 10 ? 30 : 10;
     
-    // Path efficiency: How many 'forward' moves did the user's logic take compared to BFS?
     const forwardSteps = steps.filter(s => s.type === 'forward').length;
     const extraSteps = forwardSteps - optimalPathLength;
     const pathBonus = extraSteps <= 0 ? 50 : Math.max(0, 50 - (extraSteps * 2));
@@ -211,10 +214,10 @@ const AlgoYudhRatMaze = () => {
     animTimer.current = setInterval(() => {
       if (i >= path.length) { 
         clearInterval(animTimer.current); 
-        // If animation ends but didn't reach cheese
         if (status === 'running') {
             setStatus('lost');
-            setOverlay({ show: true, icon: '🤔', title: 'LOST IN MAZE', btn: 'RETRY CODE', bg: 'rgba(30,41,59,0.9)' });
+            setAiMsg("AI Coach: You got lost in the maze! Your path didn't reach the cheese.");
+            setOverlay({ show: true, icon: '🤔', title: 'LOST IN MAZE', btn: 'RETRY CODE', bg: 'rgba(30,41,59,0.95)' });
         }
         return; 
       }
@@ -225,13 +228,15 @@ const AlgoYudhRatMaze = () => {
       setVizIdx(i);
       setHasKey(s.hasKey);
 
-      // REAL-TIME COLLISION DETECTION BASED ON USER'S EXACT PATH
+      // REAL-TIME COLLISION DETECTION
       if (cell === 'FIRE') {
         setStatus('burnt'); clearInterval(animTimer.current);
-        setOverlay({ show: true, icon: '💀', title: 'BURNED ALIVE!', btn: 'FIX CODE', bg: 'rgba(127,29,29,0.9)' });
+        setAiMsg("AI Coach: Ouch! The mouse stepped in FIRE. Make sure your logic checks for it.");
+        setOverlay({ show: true, icon: '💀', title: 'BURNED ALIVE!', btn: 'FIX CODE', bg: 'rgba(153,27,27,0.95)' });
       } else if (cell === 'DOOR' && !s.hasKey) {
         setStatus('locked'); clearInterval(animTimer.current);
-        setOverlay({ show: true, icon: '🔒', title: 'DOOR LOCKED! NEED KEY!', btn: 'FIX CODE', bg: 'rgba(30,41,59,0.9)' });
+        setAiMsg("AI Coach: You hit a DOOR but don't have the KEY. Did you update currentKey?");
+        setOverlay({ show: true, icon: '🔒', title: 'DOOR LOCKED! NEED KEY!', btn: 'FIX CODE', bg: 'rgba(30,41,59,0.95)' });
       } else if (s.r === GRID-1 && s.c === GRID-1 && i === path.length - 1) {
         setStatus('win'); clearInterval(animTimer.current);
         handleWinScore(path.length, execTime); 
@@ -244,32 +249,46 @@ const AlgoYudhRatMaze = () => {
     const sol = `function solve(maze, start, end, size) {
   const path = [];
   const visited = Array(size).fill().map(() => Array(size).fill().map(() => [false, false]));
-  
+  let stepCount = 0;
+
   function backtrack(r, c, hasKey) {
+    if (stepCount++ > 2500) throw new Error("Infinite Loop or Max Steps Exceeded!");
+
+    // Basic bounds checking
     if (r < 0 || c < 0 || r >= size || c >= size || maze[r][c] === 1) return false;
     
+    // ⬇️ --- WRITE YOUR LOGIC BELOW --- ⬇️
+    // 1. Check if the current cell is 'FIRE'. If yes, return false immediately.
     if (maze[r][c] === 'FIRE') return false;
+
+    // 2. Check if the current cell is 'DOOR'. If yes, and hasKey is false, return false.
     if (maze[r][c] === 'DOOR' && !hasKey) return false;
-    
-    let currentKey = hasKey || maze[r][c] === 'KEY';
-    
+
+    // 3. Update currentKey. If the cell is 'KEY', currentKey becomes true.
+    let currentKey = hasKey || maze[r][c] === 'KEY'; // UPDATE THIS
+    // ⬆️ --- WRITE YOUR LOGIC ABOVE --- ⬆️
+
     let kIdx = currentKey ? 1 : 0;
     if (visited[r][c][kIdx]) return false;
-    
+
+    // Log path
     path.push({ r, c, type: 'forward', hasKey: currentKey });
     visited[r][c][kIdx] = true;
-    
+
+    // Reached destination?
     if (r === end.r && c === end.c) return true;
-    
-    if (backtrack(r+1, c, currentKey)) return true;
-    if (backtrack(r, c+1, currentKey)) return true;
-    if (backtrack(r-1, c, currentKey)) return true;
-    if (backtrack(r, c-1, currentKey)) return true;
-    
+
+    // Explore: Down, Right, Up, Left
+    if (backtrack(r + 1, c, currentKey)) return true;
+    if (backtrack(r, c + 1, currentKey)) return true;
+    if (backtrack(r - 1, c, currentKey)) return true;
+    if (backtrack(r, c - 1, currentKey)) return true;
+
+    // Backtrack
     path.push({ r, c, type: 'back', hasKey: currentKey });
     return false;
   }
-  
+
   backtrack(start.r, start.c, false);
   return path;
 }`;
@@ -278,102 +297,142 @@ const AlgoYudhRatMaze = () => {
   };
 
   return (
-    <div style={s.root}>
-      <div style={s.header}>
-        <div style={s.title}>ALGOYUDH: MISSION RAT_MAZE</div>
-        <div style={s.btnRow}>
-          <div style={s.coinDisplay}>🪙 {userData?.coins || 0}</div>
-          <button style={s.btnReset} onClick={newLevel}>NEW MAZE</button>
-          <button style={s.btnSol} onClick={getSolution}>GET SOLUTION</button>
-          <button style={s.btnRun} onClick={() => runCode()}>DEPLOY CODE</button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-6 flex flex-col gap-6 font-mono overflow-hidden relative">
+      
+      {/* Background Ambience */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,242,255,0.05),_transparent_50%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,242,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,242,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
-      <div style={s.main}>
-        <div style={s.editorPanel}>
-           <div style={s.bar}>CODE_EDITOR.js</div>
-           <textarea style={s.textarea} value={code} onChange={e => setCode(e.target.value)} spellCheck="false" />
-           <div style={s.speedBar}>SPEED: {speed}ms <input type="range" min="20" max="500" value={speed} onChange={e => setSpeed(Number(e.target.value))} /></div>
+      {/* ─── HEADER ─── */}
+      <header className="flex flex-col md:flex-row justify-between items-center bg-slate-900/60 backdrop-blur-xl p-4 md:px-6 rounded-2xl border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] z-10 gap-4">
+        <div className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00f2ff] to-blue-500 tracking-[0.2em] uppercase italic">
+         RAT_MAZE
+        </div>
+        
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2 bg-[#f5a623]/10 border border-[#f5a623]/30 text-[#f5a623] px-4 py-2 rounded-lg font-black tracking-widest shadow-[0_0_10px_rgba(245,166,35,0.2)]">
+            <span>🪙</span> {userData?.coins || 0}
+          </div>
+          <button onClick={newLevel} className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs uppercase tracking-widest border border-white/5 transition-all">
+            New Maze
+          </button>
+          <button onClick={getSolution} className="px-5 py-2 bg-[#312e81] hover:bg-[#4338ca] text-white rounded-lg font-bold text-xs uppercase tracking-widest border border-indigo-500/50 transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)]">
+            Solution
+          </button>
+          <button onClick={() => runCode()} className="px-6 py-2 bg-gradient-to-r from-[#00f2ff] to-blue-600 hover:brightness-125 text-[#020617] rounded-lg font-black text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(0,242,255,0.4)] active:scale-95">
+            Deploy Logic
+          </button>
+        </div>
+      </header>
+
+      {/* ─── MAIN CONTENT ─── */}
+      <main className="flex flex-col lg:flex-row flex-1 gap-6 min-h-0 z-10">
+        
+        {/* Editor Panel */}
+        <div className="flex-[1.2] bg-[#050b14] rounded-2xl flex flex-col border border-white/10 shadow-2xl overflow-hidden">
+          <div className="px-5 py-3 bg-slate-900 border-b border-white/5 text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#ff007a]/50"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#f5a623]/50"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#00f2ff]/50"></div>
+              </div>
+              <span className="ml-2 text-[#00f2ff]/70">algorithm_logic.js</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <span>SPEED: {speed}ms</span>
+              <input type="range" min="20" max="500" value={speed} onChange={e => setSpeed(Number(e.target.value))} className="w-24 accent-[#00f2ff]" />
+            </div>
+          </div>
+          
+          <textarea 
+            className="flex-1 bg-[#0a101f] text-[#00f2ff] p-5 border-none resize-none outline-none text-xs sm:text-sm leading-relaxed custom-scrollbar shadow-[inset_0_0_20px_rgba(0,242,255,0.05)] focus:bg-[#0c162c] transition-colors" 
+            value={code} 
+            onChange={e => setCode(e.target.value)} 
+            spellCheck="false" 
+          />
         </div>
 
-        <div style={s.gamePanel}>
-          <div style={s.aiBar}>{aiMsg}</div>
-          <div style={{...s.gridWrap, gridTemplateColumns: `repeat(${GRID}, 30px)`}}>
+        {/* Game Panel */}
+        <div className="flex-1 bg-slate-900/50 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center relative border border-white/10 shadow-xl p-6 overflow-hidden">
+          
+          <div className="absolute top-4 left-4 right-4 flex items-center gap-3 bg-black/60 px-4 py-2 rounded-lg border border-white/5 z-20">
+            <div className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${status === 'running' ? 'bg-[#00f2ff]' : status === 'burnt' || status === 'locked' ? 'bg-[#ff007a]' : 'bg-[#f5a623]'}`}></div>
+            <span className={`text-xs font-mono tracking-wide ${status === 'burnt' || status === 'locked' ? 'text-[#ff007a]' : 'text-slate-300'}`}>{aiMsg}</span>
+          </div>
+
+          <div 
+            className="grid gap-[2px] md:gap-[3px] p-2 bg-[#020617] rounded-xl border border-white/5 shadow-inner mt-12"
+            style={{ gridTemplateColumns: `repeat(${GRID}, minmax(0, 1fr))` }}
+          >
             {maze.map((row, r) => row.map((val, c) => {
               const step = steps.slice(0, vizIdx + 1).find(st => st.r === r && st.c === c);
               const isCur = steps[vizIdx]?.r === r && steps[vizIdx]?.c === c;
               
-              let bg = '#0f172a';
-              if (val === 1) bg = '#1e293b';
-              else if (val === 'FIRE') bg = '#450a0a';
-              else if (val === 'DOOR') bg = hasKey ? '#064e3b' : '#451a03';
-              else if (step?.type === 'forward') bg = '#0e7490';
-              else if (step?.type === 'back') bg = '#312e81';
+              let bgClass = 'bg-[#0f172a] border-transparent';
+              let content = '';
+
+              if (val === 1) bgClass = 'bg-slate-800 border-slate-700';
+              else if (val === 'FIRE') { bgClass = 'bg-red-950/50 border-[#ff007a]/30 shadow-[inset_0_0_10px_rgba(255,0,122,0.2)]'; content = '🔥'; }
+              else if (val === 'DOOR') { bgClass = hasKey ? 'bg-emerald-950/50 border-emerald-500/30' : 'bg-amber-950/50 border-[#f5a623]/30'; content = hasKey ? '🔓' : '🚪'; }
+              else if (val === 'KEY' && !hasKey) { content = '🗝️'; }
+              else if (r === GRID-1 && c === GRID-1) { content = '🧀'; }
+              
+              if (step?.type === 'forward' && val !== 'FIRE' && val !== 'DOOR') bgClass = 'bg-[#00f2ff]/20 border-[#00f2ff]/30';
+              else if (step?.type === 'back') bgClass = 'bg-slate-800/50 border-transparent';
+
+              if (isCur) {
+                bgClass = `bg-[#020617] border-[#00f2ff] shadow-[0_0_15px_#00f2ff] scale-110 z-10`;
+                content = status === 'burnt' ? '💀' : '🐭';
+              }
 
               return (
-                <div key={`${r}-${c}`} style={{...s.cell, background: bg, border: isCur ? '2px solid #22d3ee' : '1px solid rgba(255,255,255,0.05)'}}>
-                  {isCur ? (status === 'burnt' ? '💀' : '🐭') : (
-                    <>
-                      {val === 'KEY' && !hasKey && '🗝️'}
-                      {val === 'DOOR' && (hasKey ? '🔓' : '🚪')}
-                      {val === 'FIRE' && '🔥'}
-                      {r === GRID-1 && c === GRID-1 && '🧀'}
-                    </>
-                  )}
+                <div key={`${r}-${c}`} className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center text-sm md:text-lg rounded-[4px] border transition-all duration-200 ${bgClass}`}>
+                  {content}
                 </div>
               );
             }))}
           </div>
+
+          {/* OVERLAY */}
           {overlay.show && (
-            <div style={{...s.overlay, background: overlay.bg}}>
-              <div style={{fontSize: '50px'}}>{overlay.icon}</div>
-              <div style={{fontSize: '20px', fontWeight: 'bold', margin: '10px 0'}}>{overlay.title}</div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-50 rounded-2xl backdrop-blur-md animate-fadeIn" style={{ background: overlay.bg }}>
+              <div className="text-7xl mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">{overlay.icon}</div>
+              <div className="text-2xl font-black text-white uppercase tracking-widest mb-6 drop-shadow-md text-center px-4">{overlay.title}</div>
               
               {overlay.stats && (
-                <div style={s.reportCard}>
-                  <div style={s.reportTitle}>ALGORITHM REPORT</div>
-                  <div style={s.reportRow}><span>Mission Clear:</span> <span style={{color: '#34d399'}}>+{overlay.stats.baseScore}</span></div>
-                  <div style={s.reportRow}><span>Speed ({overlay.stats.execTime}ms):</span> <span style={{color: '#34d399'}}>+{overlay.stats.speedBonus}</span></div>
-                  <div style={s.reportRow}><span>Path ({overlay.stats.forwardSteps} steps):</span> <span style={{color: '#34d399'}}>+{overlay.stats.pathBonus}</span></div>
-                  <div style={s.reportDivider}></div>
-                  <div style={s.reportTotal}><span>TOTAL EARNED:</span> <span style={{color: '#fbbf24'}}>+{overlay.stats.totalEarned} 🪙</span></div>
+                <div className="bg-[#020617]/80 border border-white/10 p-6 rounded-xl w-80 mb-6 shadow-2xl backdrop-blur-lg">
+                  <div className="text-[10px] text-slate-500 tracking-[0.3em] font-black uppercase border-b border-white/5 pb-2 mb-4 text-center">Algorithm Report</div>
+                  <div className="flex justify-between text-sm text-slate-300 mb-2 font-mono"><span>Mission Clear:</span> <span className="text-emerald-400 font-bold">+{overlay.stats.baseScore}</span></div>
+                  <div className="flex justify-between text-sm text-slate-300 mb-2 font-mono"><span>Speed ({overlay.stats.execTime}ms):</span> <span className="text-emerald-400 font-bold">+{overlay.stats.speedBonus}</span></div>
+                  <div className="flex justify-between text-sm text-slate-300 mb-4 font-mono"><span>Efficiency ({overlay.stats.forwardSteps} steps):</span> <span className="text-emerald-400 font-bold">+{overlay.stats.pathBonus}</span></div>
+                  <div className="h-px bg-white/10 w-full mb-4"></div>
+                  <div className="flex justify-between text-lg text-white font-black uppercase tracking-widest"><span>Total Earned:</span> <span className="text-[#f5a623] drop-shadow-[0_0_10px_#f5a623]">+{overlay.stats.totalEarned} 🪙</span></div>
                 </div>
               )}
 
-              <button style={s.overlayBtn} onClick={overlay.mode==='win' ? newLevel : ()=>setOverlay({show:false})}>{overlay.btn}</button>
+              <button 
+                className="px-10 py-4 bg-white text-[#020617] rounded-xl font-black text-sm uppercase tracking-[0.2em] transition-all hover:bg-slate-200 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.3)] mt-4"
+                onClick={overlay.mode === 'win' ? newLevel : () => setOverlay({show:false})}
+              >
+                {overlay.btn}
+              </button>
             </div>
           )}
         </div>
-      </div>
+      </main>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 242, 255, 0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 242, 255, 0.4); }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-fadeIn { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      `}</style>
     </div>
   );
 };
 
-const s = {
-  root: { height: '100vh', background: '#020617', color: '#f8fafc', padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px', fontFamily: 'monospace' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '12px 20px', borderRadius: '8px', border: '1px solid #1e293b' },
-  title: { fontSize: '18px', fontWeight: 'bold', color: '#22d3ee', letterSpacing: '1px' },
-  btnRow: { display: 'flex', gap: '10px', alignItems: 'center' },
-  coinDisplay: { background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', border: '1px solid #fbbf24', padding: '6px 12px', borderRadius: '4px', fontWeight: 'bold', marginRight: '10px' },
-  btnReset: { background: '#1e293b', color: '#cbd5e1', padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-  btnSol: { background: '#312e81', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-  btnRun: { background: 'linear-gradient(to right, #0891b2, #2563eb)', color: 'white', padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
-  main: { display: 'flex', flex: 1, gap: '15px', minHeight: 0 },
-  editorPanel: { flex: 1.2, background: '#0f172a', borderRadius: '8px', display: 'flex', flexDirection: 'column', border: '1px solid #1e293b' },
-  bar: { padding: '8px 15px', background: '#1e293b', fontSize: '12px', color: '#94a3b8' },
-  textarea: { flex: 1, background: 'transparent', color: '#67e8f9', padding: '15px', border: 'none', resize: 'none', outline: 'none', fontSize: '13px', lineHeight: '1.6' },
-  speedBar: { padding: '10px', background: '#0f172a', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8' },
-  gamePanel: { flex: 1, background: '#0f172a', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', border: '1px solid #1e293b' },
-  gridWrap: { display: 'grid', gap: '3px' },
-  cell: { width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', borderRadius: '3px', transition: 'all 0.2s' },
-  aiBar: { position: 'absolute', top: '20px', color: '#94a3b8', fontSize: '12px' },
-  overlay: { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 100, borderRadius: '8px', backdropFilter: 'blur(4px)' },
-  overlayBtn: { padding: '10px 25px', borderRadius: '20px', border: 'none', fontWeight: 'bold', cursor: 'pointer', background: 'white', color: 'black', marginTop: '10px' },
-  reportCard: { background: 'rgba(0,0,0,0.6)', border: '1px solid #374151', padding: '20px', borderRadius: '8px', width: '300px', marginBottom: '20px', textAlign: 'left' },
-  reportTitle: { color: '#94a3b8', fontSize: '12px', letterSpacing: '2px', marginBottom: '15px', borderBottom: '1px dashed #374151', paddingBottom: '5px' },
-  reportRow: { display: 'flex', justifyContent: 'space-between', color: '#e2e8f0', fontSize: '14px', marginBottom: '8px' },
-  reportDivider: { height: '1px', background: '#374151', margin: '15px 0' },
-  reportTotal: { display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '18px', fontWeight: 'bold' }
-};
-
-export default AlgoYudhRatMaze;
+export default GrowtixRatMaze;

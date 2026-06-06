@@ -27,7 +27,7 @@ const EDGES = [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6]];
 const BFS_ORDER = [0,1,2,3,4,5,6];
 const DFS_ORDER = [0,1,3,4,2,5,6];
 
-// ─── Drawing functions ───────────────────────────────────────────────────────
+// ─── Drawing functions (Untouched) ───────────────────────────────────────────
 function drawBubble(ctx, W, H, tick, hard, algoColor) {
   const arr = hard ? [1,2,3,5,4,6,7,8,9,10] : [9,7,5,3,1,8,6,4,2,10];
   let a = [...arr]; let swapIdx = -1;
@@ -122,21 +122,17 @@ export default function GuessTheAlgorithm() {
   const [qIdx, setQIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [lives, setLives] = useState(3); // NEW: 3 Strike System
+  
   const [answered, setAnswered] = useState(false);
   const [chosen, setChosen] = useState(null);
   const [timeLeft, setTimeLeft] = useState(1);
   const [shuffledOpts, setShuffledOpts] = useState([]);
   const [phase, setPhase] = useState("playing");
-  const [feedback, setFeedback] = useState(null);
-  const [timedOut, setTimedOut] = useState(false);
-  const [pts, setPts] = useState(0);
   
-  // Terminal System Logs
-  const [logs, setLogs] = useState(["[SYSTEM] Neural link established.", "[SYSTEM] Awaiting user input..."]);
-  const terminalEndRef = useRef(null);
-
-  // 3D Tilt State
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  // 'none' | 'granted' | 'denied'
+  const [overlay, setOverlay] = useState("none"); 
+  const [feedback, setFeedback] = useState(null);
 
   const canvasRef = useRef(null);
   const tickRef = useRef(0);
@@ -150,25 +146,15 @@ export default function GuessTheAlgorithm() {
 
   const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-  const addLog = useCallback((msg) => {
-    setLogs(prev => [...prev.slice(-15), msg]); // Keep last 15 logs
-  }, []);
-
-  useEffect(() => {
-    if (terminalEndRef.current) terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
-
   useEffect(() => { setQuestions(shuffle(ALGORITHMS)); }, []);
 
   useEffect(() => {
     if (!q) return;
     tickRef.current = 0; setAnswered(false); setChosen(null);
-    setFeedback(null); setTimedOut(false); setPts(0);
+    setFeedback(null); setOverlay("none");
     setShuffledOpts(shuffle(q.options)); setTimeLeft(1);
     startRef.current = Date.now();
-    addLog(`[MODULE ${String(qIdx+1).padStart(2, '0')}] Data matrix loaded.`);
-    addLog(`[INFO] ${hard ? q.hardHint : q.hint}`);
-  }, [qIdx, q, addLog, hard]);
+  }, [qIdx, q, hard]);
 
   useEffect(() => {
     if (!q || phase !== "playing") return;
@@ -202,94 +188,96 @@ export default function GuessTheAlgorithm() {
       setTimeLeft(frac);
       if (frac <= 0) {
         clearInterval(timerRef.current);
-        setTimedOut(true); setAnswered(true); setStreak(0);
+        setAnswered(true); setStreak(0);
+        setLives(l => l - 1);
+        setOverlay("denied");
         setFeedback({ correct: false, msg: `System timeout. Optimal sequence was ${q.answer}.` });
-        addLog(`[WARN] Timeout. Pattern was ${q.answer}.`);
       }
     }, 60);
     return () => clearInterval(timerRef.current);
-  }, [q, answered, phase, DURATION, addLog]);
+  }, [q, answered, phase, DURATION]);
+
+  // Game Over trigger
+  useEffect(() => {
+    if (lives <= 0) {
+      setTimeout(() => setPhase("end"), 1500);
+    }
+  }, [lives]);
 
   const handleAnswer = useCallback((opt) => {
-    if (answered || !q) return;
+    if (answered || !q || lives <= 0) return;
     clearInterval(timerRef.current); setAnswered(true); setChosen(opt);
+    
     const correct = opt === q.answer;
     const bonus = Math.round(timeLeft * 10);
-    const earned = correct ? (hard ? 20 : 10) + bonus : 0;
-    setPts(earned);
-    addLog(`[INPUT] User selected: ${opt}`);
+    const basePoints = hard ? 20 : 10;
+    const earned = correct ? basePoints + bonus : 0;
 
     if (correct) {
-      setScore(s => s + earned); setStreak(s => s + 1);
+      setOverlay("granted");
+      setScore(s => s + earned); 
+      setStreak(s => s + 1);
       setFeedback({ correct: true, msg: q.explain });
-      addLog(`[SUCCESS] Pattern verified. +${earned} pts`);
     } else {
+      setOverlay("denied");
       setStreak(0);
+      setLives(l => l - 1);
       setFeedback({ correct: false, msg: q.explain });
-      addLog(`[ERROR] Invalid sequence. Expected: ${q.answer}`);
     }
-  }, [answered, q, timeLeft, hard, addLog]);
+  }, [answered, q, timeLeft, hard, lives]);
+
+  // Keyboard support
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (phase !== "playing" || answered) return;
+      const key = e.key.toUpperCase();
+      const index = ['1', '2', '3', '4', 'A', 'B', 'C', 'D'].indexOf(key);
+      if (index !== -1) {
+        const optionIndex = index % 4;
+        if (shuffledOpts[optionIndex]) {
+          handleAnswer(shuffledOpts[optionIndex]);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [answered, phase, handleAnswer, shuffledOpts]);
 
   const handleNext = () => { qIdx + 1 >= questions.length ? setPhase("end") : setQIdx(i => i + 1); };
+  
   const restart = () => { 
-    setQuestions(shuffle(ALGORITHMS)); setQIdx(0); setScore(0); setStreak(0); setPhase("playing"); 
-    setLogs(["[SYSTEM] Neural link re-established. Starting new sequence..."]);
+    setQuestions(shuffle(ALGORITHMS)); setQIdx(0); setScore(0); setStreak(0); 
+    setLives(3); setPhase("playing"); 
   };
 
-  const handleMouseMove = (e) => {
-    if (phase !== "playing") return;
-    const { clientX, clientY, currentTarget } = e;
-    const { left, top, width, height } = currentTarget.getBoundingClientRect();
-    const x = (clientX - left) / width - 0.5;
-    const y = (clientY - top) / height - 0.5;
-    setTilt({ x: x * 10, y: y * -10 }); // max 10 degrees tilt
-  };
+  const totalPossible = ALGORITHMS.length * 20;
 
-  const handleMouseLeave = () => setTilt({ x: 0, y: 0 });
-
-  const total = ALGORITHMS.length * 20;
-
-  // ─── END SCREEN (Dashboard Summary) ──────────────────────────────────────────
+  // ─── END SCREEN (DECRYPTION REPORT) ──────────────────────────────────────────
   if (phase === "end") {
-    const pct = Math.round((score / total) * 100);
-    const isMaster = pct >= 80;
+    const won = lives > 0;
     
     return (
       <div className="relative min-h-screen bg-[#020617] flex items-center justify-center p-4 font-sans overflow-hidden">
-        <div className="absolute inset-0 cyber-grid opacity-20 pointer-events-none"></div>
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#00f2ff] rounded-full mix-blend-screen filter blur-[200px] opacity-10 animate-blob" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#ff007a] rounded-full mix-blend-screen filter blur-[200px] opacity-10 animate-blob animation-delay-2000" />
+        <div className={`absolute inset-0 pointer-events-none opacity-20 ${won ? 'bg-[radial-gradient(circle_at_center,_#00f2ff,_transparent)]' : 'bg-[radial-gradient(circle_at_center,_#ff007a,_transparent)]'}`}></div>
         
-        <div className="relative z-10 w-full max-w-2xl bg-slate-900/80 backdrop-blur-3xl px-8 py-12 rounded-[40px] border border-white/10 shadow-[0_0_80px_rgba(0,242,255,0.1)] text-center animate-fadeInUp">
-          <h2 className="text-xl font-mono text-[#00f2ff] uppercase tracking-[0.4em] mb-8">System Diagnostics</h2>
-          <div className="text-8xl mb-8 drop-shadow-[0_0_30px_rgba(255,215,0,0.3)] animate-bounce-slow">
-             {isMaster ? "🏆" : pct >= 50 ? "🎯" : "💀"}
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,242,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,242,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] [transform:perspective(500px)_rotateX(60deg)] origin-bottom animate-grid-flow"></div>
+
+        <div className="relative z-10 w-full max-w-lg bg-[#020617]/80 backdrop-blur-2xl p-10 rounded-3xl border border-white/10 text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <h2 className={`text-sm font-mono uppercase tracking-[0.5em] mb-6 ${won ? 'text-[#00f2ff]' : 'text-[#ff007a]'}`}>
+            {won ? "System Decrypted" : "Security Lockout"}
+          </h2>
+          <div className="text-7xl mb-6 animate-bounce-slow">
+              {won ? "🔓" : "🔒"}
           </div>
-          <h3 className="text-4xl md:text-5xl font-black text-white mb-2 uppercase tracking-tighter">
-            {isMaster ? "Sequence Mastered" : pct >= 50 ? "Simulation Complete" : "Link Severed"}
+          <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">
+            {won ? "Access Granted" : "Access Denied"}
           </h3>
-          <p className="text-slate-400 mb-12 text-lg font-mono">
-            Final Score: <span className="text-[#00f2ff] font-bold text-3xl"> {score} </span> pts
+          <p className="text-slate-400 mb-8 font-mono">
+            Decryption Score: <span className="text-white font-bold text-2xl">{score}</span>
           </p>
-          
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            <div className="bg-black/40 border border-white/5 rounded-2xl p-6 min-w-[140px]">
-              <div className="text-[#00f2ff] font-black text-3xl mb-1">{ALGORITHMS.length}</div>
-              <div className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Modules</div>
-            </div>
-            <div className="bg-black/40 border border-white/5 rounded-2xl p-6 min-w-[140px]">
-              <div className="text-[#ff007a] font-black text-3xl mb-1">{pct}%</div>
-              <div className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Accuracy</div>
-            </div>
-            <div className="bg-black/40 border border-white/5 rounded-2xl p-6 min-w-[140px]">
-              <div className="text-[#f5a623] font-black text-3xl mb-1">{hard ? 'ON' : 'OFF'}</div>
-              <div className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Hard Mode</div>
-            </div>
-          </div>
-          
-          <button onClick={restart} className="group relative px-12 py-5 bg-transparent overflow-hidden rounded-full font-black text-sm uppercase tracking-widest text-[#00f2ff] border border-[#00f2ff]/50 hover:border-[#00f2ff] transition-all duration-300">
-            <div className="absolute inset-0 bg-[#00f2ff]/10 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
-            <span className="relative z-10 drop-shadow-[0_0_8px_rgba(0,242,255,0.8)]">Reboot Sequence</span>
+          <button onClick={restart} className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest border transition-all duration-300 ${won ? 'bg-[#00f2ff]/10 text-[#00f2ff] border-[#00f2ff]/30 hover:border-[#00f2ff]' : 'bg-[#ff007a]/10 text-[#ff007a] border-[#ff007a]/30 hover:border-[#ff007a]'}`}>
+            Reboot Protocol
           </button>
         </div>
       </div>
@@ -298,311 +286,148 @@ export default function GuessTheAlgorithm() {
 
   if (!q) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-[#00f2ff] font-mono animate-pulse tracking-[0.3em] uppercase">Booting System...</div>;
 
-  // ─── PLAYING SCREEN (Holographic Desktop HUD) ────────────────────────────────
+  // ─── PLAYING SCREEN (HACKER SPEEDRUN HUD) ──────────────────────────────────
   return (
-    <div className="relative min-h-screen w-full bg-[#020617] flex flex-col font-sans text-slate-200 overflow-hidden">
+    <div className={`relative min-h-screen w-full bg-[#020617] flex flex-col items-center py-6 px-4 font-sans text-slate-200 overflow-hidden transition-colors duration-200`}>
       
-      {/* Background Atmosphere */}
-      <div className="fixed inset-0 cyber-grid opacity-[0.15] pointer-events-none" />
-      <div className="fixed top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-[#00f2ff] rounded-full mix-blend-screen filter blur-[200px] opacity-[0.07] animate-blob pointer-events-none" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-[#ff007a] rounded-full mix-blend-screen filter blur-[200px] opacity-[0.07] animate-blob animation-delay-2000 pointer-events-none" />
-      
-      {/* Particle Dust (CSS implementation) */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-         <div className="particle w-1 h-1 bg-[#00f2ff] rounded-full absolute top-[20%] left-[10%] animate-float1 opacity-40 blur-[1px]"></div>
-         <div className="particle w-2 h-2 bg-[#ff007a] rounded-full absolute top-[60%] left-[80%] animate-float2 opacity-30 blur-[2px]"></div>
-         <div className="particle w-1.5 h-1.5 bg-white rounded-full absolute top-[80%] left-[30%] animate-float3 opacity-50 blur-[1px]"></div>
-         <div className="particle w-3 h-3 bg-[#f5a623] rounded-full absolute top-[30%] left-[70%] animate-float1 opacity-20 blur-[3px] animation-delay-2000"></div>
-      </div>
+      {/* Dynamic Background Glow based on Streak */}
+      <div className="fixed inset-0 pointer-events-none transition-all duration-500" style={{
+        background: `radial-gradient(circle at 50% 50%, ${streak >= 3 ? 'rgba(245, 166, 35, 0.08)' : 'rgba(0, 242, 255, 0.05)'}, transparent 70%)`
+      }} />
 
-      {/* Top Header */}
-      <header className="relative z-20 w-full py-6 px-8 flex justify-center items-center border-b border-white/5 bg-slate-900/50 backdrop-blur-md shadow-lg">
-         <h1 className="text-3xl font-black text-white tracking-[0.3em] uppercase flex items-center gap-4 glitch-wrapper">
-           <span className="text-[#00f2ff] text-4xl drop-shadow-[0_0_15px_rgba(0,242,255,0.6)]">🧠</span>
-           <span className="glitch" data-text="DEV_QUEST">DEV_QUEST</span>
-         </h1>
+      {/* ─── TOP HUD (HACKER PROTOCOL) ─── */}
+      <header className="relative w-full max-w-5xl flex justify-between items-start mb-6 z-20">
+        
+        {/* Score & Progression */}
+        <div className="flex flex-col w-[30%]">
+           <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Decryption Sequence</span>
+           <div className="flex items-end gap-3">
+             <span className="text-4xl font-black text-white leading-none drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">{score}</span>
+             <span className="text-xs text-[#00f2ff] font-mono mb-1">NODE {qIdx + 1}/{questions.length}</span>
+           </div>
+        </div>
+
+        {/* Center Streak Multiplier */}
+        <div className="flex flex-col items-center justify-center">
+           <span className="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-bold mb-1">Data Stream</span>
+           <div className={`px-4 py-1 rounded-full border-2 font-black text-lg tracking-widest transition-all ${streak >= 3 ? 'bg-[#f5a623]/20 border-[#f5a623] text-[#f5a623] shadow-[0_0_15px_#f5a623] animate-pulse' : streak > 0 ? 'bg-[#00f2ff]/10 border-[#00f2ff] text-[#00f2ff]' : 'bg-transparent border-slate-700 text-slate-500'}`}>
+              {streak}x COMBO
+           </div>
+        </div>
+
+        {/* Lives (Firewall Bypasses) */}
+        <div className="flex flex-col items-end w-[30%]">
+          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">Firewall Bypasses</span>
+          <div className="flex gap-2">
+            {[1, 2, 3].map((strike) => (
+              <div key={strike} className={`w-8 h-8 rounded-lg rotate-45 flex items-center justify-center transition-all duration-300 ${strike <= lives ? 'bg-[#00f2ff]/20 border border-[#00f2ff] shadow-[0_0_10px_#00f2ff]' : 'bg-slate-900 border border-slate-700 opacity-50'}`}>
+                <div className={`-rotate-45 text-xs font-black ${strike <= lives ? 'text-[#00f2ff]' : 'text-slate-600'}`}>
+                  🛡️
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </header>
 
-      {/* Main HUD Layout */}
-      <main className="relative z-10 flex-grow w-full max-w-[1800px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 p-4 xl:p-8">
-        
-        {/* ─── LEFT PANEL: Telemetry ─── */}
-        <aside className="xl:col-span-3 flex flex-col gap-6 order-2 xl:order-1">
-          {/* Stats Card */}
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-[24px] border border-white/5 p-6 shadow-xl relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-[#00f2ff]/10 rounded-bl-full blur-2xl"></div>
-             <h3 className="text-xs font-mono text-slate-500 uppercase tracking-[0.3em] mb-6">Telemetry</h3>
-             
-             <div className="mb-8">
-                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Total Score</div>
-                <div className="text-[#00f2ff] font-black text-5xl drop-shadow-[0_0_15px_rgba(0,242,255,0.4)]">{score}</div>
-             </div>
+      {/* ─── MAIN ARENA (Canvas Visualizer) ─── */}
+      <main className="relative w-full max-w-5xl z-10 flex flex-col items-center">
 
-             <div className="mb-8">
-                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">Multiplier / Streak</div>
-                <div className="flex items-center gap-3">
-                  <div className={`text-3xl font-black ${streak >= 3 ? 'text-[#ff007a] drop-shadow-[0_0_15px_rgba(255,0,122,0.4)]' : 'text-[#f5a623]'}`}>
-                    x{streak}
-                  </div>
-                  {streak >= 2 && <span className="animate-pulse text-2xl">🔥</span>}
-                </div>
-             </div>
-
-             <div className={`p-4 rounded-xl border ${hard ? 'bg-[#ff007a]/10 border-[#ff007a]/30' : 'bg-slate-800 border-white/5'}`}>
-                <div className="text-[10px] uppercase font-bold tracking-widest mb-1 flex justify-between">
-                  <span className={hard ? 'text-[#ff007a]' : 'text-slate-400'}>Protocol Status</span>
-                  <span className={hard ? 'text-[#ff007a] animate-pulse' : 'text-slate-500'}>{hard ? 'HARD' : 'NORMAL'}</span>
-                </div>
-                <div className="w-full h-1 bg-black rounded-full overflow-hidden mt-2">
-                  <div className={`h-full ${hard ? 'bg-[#ff007a] w-full' : 'bg-[#00f2ff] w-1/3'}`}></div>
-                </div>
-             </div>
-          </div>
-
-          {/* Module Map */}
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-[24px] border border-white/5 p-6 shadow-xl flex-grow hidden xl:flex flex-col">
-            <h3 className="text-xs font-mono text-slate-500 uppercase tracking-[0.3em] mb-6">Sequence Map</h3>
-            <div className="flex flex-col gap-4 relative">
-              <div className="absolute left-3.5 top-2 bottom-2 w-px bg-slate-800"></div>
-              {questions.map((_, i) => (
-                <div key={i} className="flex items-center gap-4 relative z-10">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 text-[10px] font-bold transition-all duration-500 ${
-                    i < qIdx ? "bg-[#00f2ff]/20 border-[#00f2ff] text-[#00f2ff]" 
-                    : i === qIdx ? "bg-[#ff007a] border-[#ff007a] text-white shadow-[0_0_15px_rgba(255,0,122,0.6)]" 
-                    : "bg-[#020617] border-slate-700 text-slate-600"
-                  }`}>
-                    {i < qIdx ? "✓" : i + 1}
-                  </div>
-                  <span className={`text-xs uppercase tracking-widest font-mono ${i === qIdx ? 'text-white' : 'text-slate-500'}`}>
-                    Module_{String(i + 1).padStart(2, '0')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* ─── CENTER PANEL: Main Stage ─── */}
-        <section className="xl:col-span-6 flex flex-col order-1 xl:order-2" 
-                 onMouseMove={handleMouseMove} 
-                 onMouseLeave={handleMouseLeave}
-                 style={{ perspective: "1500px" }}>
+        <div className={`w-full relative aspect-[21/9] max-h-[350px] bg-[#050b14] rounded-[2rem] overflow-hidden border-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] mb-8 group transition-all duration-300 ${overlay === 'granted' ? 'border-[#00f2ff] shadow-[0_0_30px_#00f2ff]' : overlay === 'denied' ? 'border-[#ff007a] shadow-[0_0_30px_#ff007a]' : 'border-slate-800'}`}>
           
-          <div 
-            className="w-full flex-grow flex flex-col bg-slate-900/80 backdrop-blur-2xl rounded-[32px] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-6 md:p-10 relative overflow-hidden transition-transform duration-200 ease-out preserve-3d"
-            style={{ transform: `rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)` }}
-          >
-            {/* Animated Edge Glow */}
-            <div className="absolute inset-[-2px] -z-10 rounded-[34px] overflow-hidden">
-               <div className="absolute inset-[-50%] w-[200%] h-[200%] animate-spin-slow" 
-                    style={{ background: `conic-gradient(from 0deg, transparent 0 340deg, ${hard ? THEME.pink : THEME.cyan} 360deg)` }}>
-               </div>
-               <div className="absolute inset-[2px] bg-slate-900 rounded-[32px]"></div>
-            </div>
+          {/* CRT Overlay Effect */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] z-10 pointer-events-none mix-blend-screen opacity-50"></div>
+          
+          {/* Animated Scanner Line */}
+          {!answered && (
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-[#00f2ff] shadow-[0_0_20px_5px_rgba(0,242,255,0.5)] z-10 opacity-70 animate-scanner"></div>
+          )}
 
-            {/* Stage Header */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-full border border-white/5">
-                <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${hard ? 'bg-[#ff007a] shadow-[0_0_10px_#ff007a]' : 'bg-[#00f2ff] shadow-[0_0_10px_#00f2ff]'}`} />
-                <div className="text-xs text-slate-300 uppercase tracking-[0.2em] font-mono">
-                  {q.id === "bfs" || q.id === "dfs" ? "Graph_Matrix.exe" : "Array_Matrix.exe"}
-                </div>
-              </div>
-              <div className="text-xs font-mono text-slate-500 uppercase tracking-widest">
-                T-Minus
-              </div>
-            </div>
-
-            {/* Timer Bar */}
-            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden mb-8">
-              <div 
-                className="h-full rounded-full transition-all duration-100 ease-linear shadow-[0_0_10px_currentColor]"
-                style={{ 
-                  width: `${timeLeft * 100}%`, 
-                  backgroundColor: timeLeft > 0.5 ? THEME.cyan : timeLeft > 0.25 ? THEME.amber : THEME.pink,
-                  color: timeLeft > 0.5 ? THEME.cyan : timeLeft > 0.25 ? THEME.amber : THEME.pink
-                }} 
-              />
-            </div>
-
-            {/* Arena Canvas */}
-            <div className="w-full relative aspect-[21/9] bg-black/60 rounded-2xl overflow-hidden border border-white/5 shadow-inner mb-10 group">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#00f2ff]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-              <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-contain p-4 mix-blend-screen" />
-              {/* Floor reflection effect */}
-              <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-[#020617] to-transparent pointer-events-none"></div>
-            </div>
-
-            {/* Options Grid */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-auto">
-              {shuffledOpts.map((opt, index) => {
-                const letter = ['A', 'B', 'C', 'D'][index];
-                const isChosen = chosen === opt;
-                const isCorrect = opt === q.answer;
-                const show = answered;
-                
-                let btnClass = "bg-slate-800/50 border border-white/5 text-slate-300 hover:bg-slate-700/80 hover:border-[#00f2ff]/50";
-                let circleClass = "bg-slate-900/80 text-slate-400 border border-white/10";
-                
-                if (show) {
-                  if (isCorrect) {
-                    btnClass = "bg-[#00f2ff]/10 border-[#00f2ff] text-[#00f2ff] shadow-[0_0_20px_rgba(0,242,255,0.2)]";
-                    circleClass = "bg-[#00f2ff] text-[#020617] border-transparent font-black";
-                  } else if (isChosen && !isCorrect) {
-                    btnClass = "bg-[#ff007a]/10 border-[#ff007a] text-[#ff007a] shadow-[0_0_20px_rgba(255,0,122,0.2)]";
-                    circleClass = "bg-[#ff007a] text-[#020617] border-transparent font-black";
-                  } else {
-                    btnClass = "bg-black/30 border-transparent text-slate-600 opacity-40 cursor-not-allowed";
-                  }
-                }
-
-                return (
-                  <button
-                    key={opt} disabled={answered} onClick={() => handleAnswer(opt)}
-                    className={`flex items-center p-3 pr-6 rounded-2xl font-black uppercase tracking-widest transition-all duration-300 ${btnClass} ${!answered && 'active:scale-95 hover:translate-y-[-2px]'}`}
-                  >
-                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center mr-4 text-lg transition-colors duration-300 ${circleClass}`}>
-                      {letter}
-                    </div>
-                    <span className="text-sm md:text-base">{opt}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Next Button Overlay */}
-            {answered && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[80%] z-20 animate-slideUp">
-                <button onClick={handleNext} className="w-full py-5 bg-gradient-to-r from-[#00f2ff] to-[#3b82f6] text-[#020617] rounded-xl font-black text-sm uppercase tracking-[0.3em] transition-all duration-300 shadow-[0_10px_30px_rgba(0,242,255,0.4)] hover:brightness-125 hover:shadow-[0_10px_40px_rgba(0,242,255,0.6)] active:scale-[0.98]">
-                  {qIdx + 1 >= questions.length ? "Compile Final Report >>" : "Initialize Next Module >>"}
-                </button>
-              </div>
-            )}
+          {/* Top Canvas Bar (Timer) */}
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-800 z-20">
+            <div className={`h-full transition-all duration-100 ease-linear ${timeLeft < 0.3 ? 'bg-[#ff007a] shadow-[0_0_15px_#ff007a]' : 'bg-[#00f2ff] shadow-[0_0_15px_#00f2ff]'}`} style={{ width: `${timeLeft * 100}%` }} />
           </div>
-        </section>
 
-        {/* ─── RIGHT PANEL: System Terminal ─── */}
-        <aside className="xl:col-span-3 flex flex-col order-3 h-[400px] xl:h-auto">
-          <div className="bg-[#020617]/90 backdrop-blur-xl rounded-[24px] border border-white/10 shadow-xl flex-grow flex flex-col overflow-hidden relative">
-            <div className="bg-slate-900/80 px-5 py-3 border-b border-white/5 flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-[#ff007a]/50"></div>
-                <div className="w-3 h-3 rounded-full bg-[#f5a623]/50"></div>
-                <div className="w-3 h-3 rounded-full bg-[#00f2ff]/50"></div>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest ml-2">sys_terminal.sh</span>
-            </div>
+          {/* Hint Overlay */}
+          <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md px-4 py-1.5 rounded border border-white/10 z-20 flex items-center gap-3">
+            <span className={`text-xs font-black animate-pulse ${hard ? 'text-[#ff007a]' : 'text-[#00f2ff]'}`}>ANALYSIS:</span>
+            <span className="text-xs text-white font-mono tracking-wide">{hard ? q.hardHint : q.hint}</span>
+          </div>
+
+          {/* SUCCESS / FAIL OVERLAYS */}
+          <div className={`absolute inset-0 z-30 flex items-center justify-center transition-all duration-300 pointer-events-none ${overlay === 'granted' ? 'bg-[#00f2ff]/20 opacity-100' : overlay === 'denied' ? 'bg-[#ff007a]/20 opacity-100' : 'opacity-0'}`}>
+            {overlay === 'granted' && <span className="text-5xl md:text-7xl font-black text-[#00f2ff] tracking-[0.2em] uppercase mix-blend-screen drop-shadow-[0_0_20px_#00f2ff]">ACCESS GRANTED</span>}
+            {overlay === 'denied' && <span className="text-5xl md:text-7xl font-black text-[#ff007a] tracking-[0.2em] uppercase mix-blend-screen drop-shadow-[0_0_20px_#ff007a] animate-pulse">ACCESS DENIED</span>}
+          </div>
+
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-contain p-6" />
+        </div>
+
+        {/* ─── DECRYPTION KEYS (Options Grid) ─── */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl">
+          {shuffledOpts.map((opt, index) => {
+            const letter = ['A', 'B', 'C', 'D'][index];
+            const isChosen = chosen === opt;
+            const isCorrect = opt === q.answer;
+            const show = answered;
             
-            <div className="flex-grow p-5 overflow-y-auto font-mono text-xs text-slate-300 flex flex-col gap-2 custom-scrollbar">
-              {logs.map((log, i) => (
-                <div key={i} className={`opacity-80 animate-fadeIn ${
-                  log.includes('[ERROR]') || log.includes('[WARN]') ? 'text-[#ff007a]' : 
-                  log.includes('[SUCCESS]') ? 'text-[#00f2ff]' : 
-                  log.includes('[INFO]') ? 'text-[#f5a623]' : 'text-slate-400'
-                }`}>
-                  <span className="opacity-50 mr-2">{new Date().toLocaleTimeString('en-US', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" })}</span>
-                  {log}
+            // Sleek Decryption Key styles
+            let baseStyle = "bg-[#0f172a]/80 border-slate-700 text-slate-300 hover:bg-[#1e293b] hover:border-[#00f2ff]/50";
+            let iconStyle = "bg-slate-800 text-slate-400";
+            
+            if (show) {
+              if (isCorrect) {
+                baseStyle = "bg-[#00f2ff]/10 border-[#00f2ff] text-[#00f2ff] shadow-[0_0_20px_rgba(0,242,255,0.2)]";
+                iconStyle = "bg-[#00f2ff] text-[#020617]";
+              } else if (isChosen && !isCorrect) {
+                baseStyle = "bg-[#ff007a]/10 border-[#ff007a] text-[#ff007a] shadow-[0_0_20px_rgba(255,0,122,0.2)]";
+                iconStyle = "bg-[#ff007a] text-[#020617]";
+              } else {
+                baseStyle = "bg-black/40 border-transparent text-slate-600 opacity-30";
+              }
+            }
+
+            return (
+              <button
+                key={opt} disabled={answered} onClick={() => handleAnswer(opt)}
+                className={`group flex items-center p-4 rounded-xl border-2 backdrop-blur-sm transition-all duration-300 outline-none ${baseStyle} ${!answered ? 'active:scale-95' : 'cursor-default'}`}
+              >
+                <div className={`w-10 h-10 shrink-0 flex items-center justify-center font-black text-sm mr-4 transition-colors duration-300 border ${iconStyle} ${!show ? 'border-slate-600 group-hover:border-[#00f2ff] group-hover:text-[#00f2ff]' : 'border-transparent'}`}>
+                  {letter}
                 </div>
-              ))}
-              
-              {/* Feedback injection into terminal */}
-              {answered && feedback && (
-                 <div className="mt-4 p-3 bg-white/5 border-l-2 border-[#00f2ff] text-slate-200">
-                   <div className="uppercase text-[10px] text-[#00f2ff] mb-1 font-bold">Analysis_Report:</div>
-                   {feedback.msg}
-                 </div>
-              )}
-              
-              <div ref={terminalEndRef} />
-              <div className="flex items-center gap-2 mt-2 text-[#00f2ff]">
-                <span>&gt;</span>
-                <span className="w-2 h-4 bg-[#00f2ff] animate-pulse"></span>
-              </div>
-            </div>
-          </div>
-        </aside>
+                <span className="text-lg font-bold tracking-wide text-left flex-grow font-mono">{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ─── NEXT BUTTON OVERLAY ─── */}
+        <div className={`w-full max-w-4xl mt-8 transition-all duration-500 overflow-hidden flex justify-center ${answered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+            <button onClick={handleNext} className="w-full sm:w-auto px-12 py-4 bg-white text-[#020617] rounded-xl font-black text-sm uppercase tracking-[0.3em] transition-all hover:bg-slate-200 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.4)]">
+              {qIdx + 1 >= questions.length ? "Complete Sequence" : "Decrypt Next Node >>"}
+            </button>
+        </div>
 
       </main>
 
-      {/* ─── CSS Animations & Styles ─── */}
+      {/* ─── CUSTOM KEYFRAME ANIMATIONS ─── */}
       <style>{`
-        /* 3D Grid Floor */
-        .cyber-grid {
-          background-size: 40px 40px;
-          background-image: 
-            linear-gradient(to right, rgba(0, 242, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
-          transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
-          transform-origin: top;
+        @keyframes scanner {
+          0% { top: 0; opacity: 0; }
+          10% { opacity: 0.8; }
+          90% { opacity: 0.8; }
+          100% { top: 100%; opacity: 0; }
         }
-
-        /* 3D Depth Helper */
-        .preserve-3d { transform-style: preserve-3d; }
-
-        /* Custom Scrollbar for Terminal */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,242,255,0.3); }
-
-        /* Glitch Text Effect */
-        .glitch-wrapper { position: relative; }
-        .glitch { position: relative; font-weight: 900; }
-        .glitch::before, .glitch::after {
-          content: attr(data-text);
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          opacity: 0.8;
+        .animate-scanner {
+          animation: scanner 3s ease-in-out infinite;
         }
-        .glitch::before {
-          left: 2px; text-shadow: -1px 0 #ff007a;
-          clip: rect(44px, 450px, 56px, 0);
-          animation: glitch-anim 5s infinite linear alternate-reverse;
+        @keyframes grid-flow {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 40px; }
         }
-        .glitch::after {
-          left: -2px; text-shadow: -1px 0 #00f2ff;
-          clip: rect(44px, 450px, 56px, 0);
-          animation: glitch-anim2 5s infinite linear alternate-reverse;
+        .animate-grid-flow {
+          animation: grid-flow 2s linear infinite;
         }
-
-        /* Particles */
-        @keyframes float1 { 0% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-20px) translateX(10px); } 100% { transform: translateY(0) translateX(0); } }
-        @keyframes float2 { 0% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-30px) translateX(-15px); } 100% { transform: translateY(0) translateX(0); } }
-        @keyframes float3 { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-15px) scale(1.5); } 100% { transform: translateY(0) scale(1); } }
-        .animate-float1 { animation: float1 8s infinite ease-in-out; }
-        .animate-float2 { animation: float2 12s infinite ease-in-out; }
-        .animate-float3 { animation: float3 10s infinite ease-in-out; }
-
-        @keyframes glitch-anim {
-          0% { clip: rect(10px, 9999px, 83px, 0); }
-          5% { clip: rect(66px, 9999px, 57px, 0); transform: translate(1px, 1px); }
-          10% { clip: rect(14px, 9999px, 49px, 0); transform: translate(-1px, -1px); }
-          15% { clip: rect(0,0,0,0); transform: translate(0,0); }
-          100% { clip: rect(0,0,0,0); }
-        }
-        @keyframes glitch-anim2 {
-          0% { clip: rect(65px, 9999px, 100px, 0); }
-          5% { clip: rect(15px, 9999px, 44px, 0); transform: translate(-1px, 1px); }
-          10% { clip: rect(81px, 9999px, 20px, 0); transform: translate(1px, -1px); }
-          15% { clip: rect(0,0,0,0); transform: translate(0,0); }
-          100% { clip: rect(0,0,0,0); }
-        }
-
-        /* General Utilities */
-        @keyframes spin-slow { 100% { transform: rotate(360deg); } }
-        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
-        
-        @keyframes blob { 0% { transform: translate(0px, 0px) scale(1); } 33% { transform: translate(50px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0px, 0px) scale(1); } }
-        .animate-blob { animation: blob 20s infinite alternate ease-in-out; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
-        
-        @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
-        .animate-slideUp { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-        .animate-bounce-slow { animation: bounce-slow 4s ease-in-out infinite; }
       `}</style>
     </div>
   );
