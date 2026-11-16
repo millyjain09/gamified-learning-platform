@@ -39,7 +39,8 @@ It combines structured learning, coding challenges, progress tracking, and gamif
 | Database | MongoDB |
 | Real-time Communication | Socket.io |
 | Authentication | JWT |
-| Deployment | Vercel |
+| Frontend Deployment | Vercel |
+| Backend Deployment | Render |
 
 
 ## 📸 Project Screenshots
