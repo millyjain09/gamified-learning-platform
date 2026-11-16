@@ -143,8 +143,8 @@ The application will be available at the local URL displayed by your frontend de
 
 B.Tech Computer Science & Engineering
 
-- GitHub: [Your GitHub Profile](github.com/millyjain09)
-- LinkedIn: [Your LinkedIn Profile](linkedin.com/in/milly-jain/)
+- GitHub: [millyjain09](https://github.com/millyjain09)
+- LinkedIn: [Milly Jain](https://linkedin.com/in/milly-jain/)
 
 ---
 
